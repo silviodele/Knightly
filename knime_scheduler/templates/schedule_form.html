@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}{{ schedule.name if schedule else 'Nuovo schedule' }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ schedule.name if schedule else 'Nuovo schedule' }}</h1>
+  {% if schedule %}
+  <div class="actions">
+    {% if schedule.active %}<span class="muted">Prossimo run: {{ next_run | dt }}</span>{% endif %}
+    <button hx-post="/schedules/{{ schedule.id }}/run" hx-target="#runs">Avvia ora</button>
+  </div>
+  {% endif %}
+</div>
+
+{% if not workflows or not environments %}
+<p class="notice warn">Per creare uno schedule servono almeno un <a href="/workflows">workflow</a>
+  e un <a href="/environments">environment</a>.</p>
+{% endif %}
+
+<form method="post" action="{{ '/schedules/%d' % schedule.id if schedule else '/schedules/new' }}">
+  <div class="grid-form">
+    <label>Nome
+      <input name="name" value="{{ f.name }}" required>
+    </label>
+    <label>Workflow
+      <select name="workflow_id" id="workflow_id" required>
+        <option value="">— scegli —</option>
+        {% for wf in workflows %}
+        <option value="{{ wf.id }}" {% if f.workflow_id == wf.id|string %}selected{% endif %}>{{ wf.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Environment
+      <select name="environment_id" id="environment_id" required>
+        <option value="">— scegli —</option>
+        {% for env in environments %}
+        <option value="{{ env.id }}" {% if f.environment_id == env.id|string %}selected{% endif %}>{{ env.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+
+  <h3>Dipendenze</h3>
+  <div id="dependency-panel"
+       hx-get="/dependency-panel" hx-include="#workflow_id, #environment_id"
+       hx-trigger="load, change from:#workflow_id, change from:#environment_id">
+    <p class="muted" aria-busy="true">Verifica delle dipendenze…</p>
+  </div>
+
+  <h3>Pianificazione</h3>
+  <div class="grid-form">
+    <label>Tipo
+      <select name="trigger_type">
+        {% for value, label in TRIGGER_LABELS.items() %}
+        <option value="{{ value }}" {% if f.trigger_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Valore
+      <input name="trigger_value" value="{{ f.trigger_value }}" required placeholder="0 6 * * 1-5">
+      <small>Cron a 5 campi (es. <code>0 6 * * 1-5</code> = feriali alle 6:00), minuti (es. <code>30</code>)
+        o data ISO (es. <code>2026-12-31T23:00</code>).</small>
+    </label>
+    <label>Se c'è già un run attivo
+      <select name="concurrency">
+        {% for value, label in CONCURRENCY_LABELS.items() %}
+        <option value="{{ value }}" {% if f.concurrency == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+  <label><input type="checkbox" name="active" role="switch" {% if f.active %}checked{% endif %}> Attivo</label>
+
+  <h3>Variabili di flusso</h3>
+  <div class="rows" id="variables">
+    {% for item in f.variables %}{% include "_var_row.html" %}{% endfor %}
+  </div>
+  <button type="button" class="small secondary outline"
+          hx-get="/form-rows/var" hx-target="#variables" hx-swap="beforeend">+ Variabile</button>
+
+  <h3>Credenziali</h3>
+  <div class="rows" id="credentials">
+    {% for item in f.credentials %}{% include "_cred_row.html" %}{% endfor %}
+  </div>
+  <button type="button" class="small secondary outline"
+          hx-get="/form-rows/cred" hx-target="#credentials" hx-swap="beforeend">+ Credenziale</button>
+  {% if schedule %}<p class="muted">Lascia la password vuota per mantenere quella salvata.</p>{% endif %}
+
+  <h3>Opzioni</h3>
+  <div class="grid-form">
+    <label>Timeout (minuti)
+      <input type="number" min="1" name="timeout_minutes" value="{{ f.timeout_minutes }}" placeholder="nessuno">
+    </label>
+    <label>Conserva lo storico per (giorni)
+      <input type="number" min="1" name="retention_days" value="{{ f.retention_days }}" placeholder="sempre">
+    </label>
+  </div>
+  <label><input type="checkbox" name="reset_before_run" {% if f.reset_before_run %}checked{% endif %}>
+    Reset del workflow prima dell'esecuzione</label>
+  <fieldset>
+    <legend>Notifica quando il run è</legend>
+    {% for value, label in [('success', 'riuscito'), ('failed', 'fallito'), ('cancelled', 'annullato')] %}
+    <label><input type="checkbox" name="notify_on" value="{{ value }}" {% if value in f.notify_on %}checked{% endif %}> {{ label }}</label>
+    {% endfor %}
+  </fieldset>
+
+  <label>Note
+    <textarea name="notes" rows="2">{{ f.notes }}</textarea>
+  </label>
+
+  <div class="actions">
+    <button type="submit">Salva</button>
+    <a href="/schedules" role="button" class="secondary outline">Annulla</a>
+  </div>
+</form>
+
+{% if schedule %}
+<h2>Ultimi run</h2>
+<div id="runs">{% include "_runs_table.html" %}</div>
+
+<form method="post" action="/schedules/{{ schedule.id }}/delete"
+      onsubmit="return confirm('Eliminare lo schedule e tutto il suo storico?')">
+  <button class="secondary outline small" type="submit">Elimina schedule</button>
+</form>
+{% endif %}
+{% endblock %}

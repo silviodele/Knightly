@@ -47,6 +47,17 @@ Environment ──< Schedule >── Workflow ──< WorkflowDependency
 - Ogni notte alle 3 elimina run e log piu' vecchi della retention dello schedule.
 - `on_run_finished` permette di agganciare notifiche e aggiornamenti della UI.
 
+## Interfaccia web e API
+- **Schedule**: elenco con prossimo/ultimo run, avvio manuale, pausa. Il form ha il **pannello dipendenze**
+  che si aggiorna (HTMX) quando cambiano workflow o environment, con il pulsante "Aggiungi all'environment"
+  per le estensioni mancanti; variabili e credenziali a righe dinamiche; storico dei run aggiornato ogni 3s.
+- **Workflow**: caricamento .knwf con rilevamento dipendenze, aggiunta/rimozione manuale, nuova versione del file
+  (le dipendenze manuali restano).
+- **Environment**: configurazione ed elenco delle estensioni installate lette da `features/`.
+- **Run**: elenco filtrabile, dettaglio con log in tempo reale (Server-Sent Events) e annullamento.
+- Le password delle credenziali non vengono mai restituite da API e pagine (campo vuoto = mantieni).
+- API REST sotto `/api` (documentazione OpenAPI su `/docs`), stessa logica delle pagine (`crud.py`).
+
 ## Isolamento
 Ogni Environment e' una installazione KNIME locale (cartella su disco). L'esecuzione e' dietro
 `RunSpec`/`run_workflow`, cosi' un runner Docker si potra' aggiungere in seguito.

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Run #{{ run.id }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Run #{{ run.id }}</h1>
+  <a href="/schedules/{{ run.schedule_id }}">{{ run.schedule.name }}</a>
+</div>
+
+{% if run.status in ACTIVE %}
+<div hx-ext="sse" sse-connect="/runs/{{ run.id }}/log/stream" sse-close="done">
+  <div hx-get="/runs/{{ run.id }}/status" hx-trigger="sse:done" hx-swap="innerHTML">
+    {% include "_run_status.html" %}
+  </div>
+  <h2>Log <span class="muted" aria-busy="true">in tempo reale</span></h2>
+  <div class="log" id="log" sse-swap="line" hx-swap="beforeend"></div>
+</div>
+{% else %}
+{% include "_run_status.html" %}
+<h2>Log</h2>
+<div class="log">{% if log_text %}{{ log_text }}{% else %}<span class="muted">Nessun log.</span>{% endif %}</div>
+{% endif %}
+{% endblock %}

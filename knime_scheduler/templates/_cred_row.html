@@ -1,0 +1,7 @@
+<div class="row">
+  <input name="cred_name" value="{{ item.name }}" placeholder="nome credenziale" aria-label="Nome credenziale">
+  <input name="cred_login" value="{{ item.login }}" placeholder="login" aria-label="Login" autocomplete="off">
+  <input name="cred_password" type="password" value="{{ item.password }}" placeholder="password"
+         aria-label="Password" autocomplete="new-password">
+  <button type="button" class="small secondary outline" onclick="this.closest('.row').remove()" aria-label="Rimuovi">✕</button>
+</div>

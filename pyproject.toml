@@ -18,10 +18,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "httpx2"]
+
+[project.scripts]
+knime-scheduler = "knime_scheduler.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["knime_scheduler*"]
+
+[tool.setuptools.package-data]
+knime_scheduler = ["templates/*.html", "static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

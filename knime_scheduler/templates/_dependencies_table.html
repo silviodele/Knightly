@@ -1,0 +1,21 @@
+{% if dep_error %}<p class="notice error">{{ dep_error }}</p>{% endif %}
+{% if wf.dependencies %}
+<table>
+  <thead><tr><th>Estensione</th><th>Versione</th><th>Origine</th><th></th></tr></thead>
+  <tbody>
+    {% for dep in wf.dependencies | sort(attribute='feature_id') %}
+    <tr>
+      <td>{{ dep.name or dep.feature_id }}<span class="muted"><code class="id">{{ dep.feature_id }}</code></span></td>
+      <td>{{ dep.version or '—' }}</td>
+      <td>{{ 'rilevata' if dep.source == 'detected' else 'manuale' }}</td>
+      <td>
+        <button class="small secondary outline" hx-post="/workflows/{{ wf.id }}/dependencies/{{ dep.id }}/delete"
+                hx-target="#dependencies" hx-confirm="Rimuovere questa dipendenza?">Rimuovi</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">Nessuna dipendenza.</p>
+{% endif %}

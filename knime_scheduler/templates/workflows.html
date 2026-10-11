@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Workflow{% endblock %}
+{% block content %}
+<h1>Workflow</h1>
+
+<article>
+  <form method="post" action="/workflows" enctype="multipart/form-data">
+    <div class="grid-form">
+      <label>File .knwf
+        <input type="file" name="file" accept=".knwf" required>
+      </label>
+      <label>Nome (facoltativo)
+        <input name="name" placeholder="dal nome del file">
+      </label>
+    </div>
+    <button type="submit">Carica workflow</button>
+    <small class="muted">Le dipendenze (estensioni KNIME) vengono rilevate automaticamente.</small>
+  </form>
+</article>
+
+{% if workflows %}
+<table class="striped">
+  <thead><tr><th>Nome</th><th>Dipendenze</th><th>Schedule</th><th>Caricato</th></tr></thead>
+  <tbody>
+    {% for wf in workflows %}
+    <tr>
+      <td><a href="/workflows/{{ wf.id }}"><strong>{{ wf.name }}</strong></a></td>
+      <td>{{ wf.dependencies | length }}</td>
+      <td>{{ wf.schedules | length }}</td>
+      <td>{{ wf.uploaded_at | dt }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">Nessun workflow caricato.</p>
+{% endif %}
+{% endblock %}

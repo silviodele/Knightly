@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Run{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Run</h1>
+  <form method="get" action="/runs" class="actions">
+    <select name="status" onchange="this.form.submit()" aria-label="Filtra per stato">
+      <option value="">Tutti gli stati</option>
+      {% for value, label in STATUS_LABELS.items() %}
+      <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+{% include "_runs_table.html" %}
+{% endblock %}

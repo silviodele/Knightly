@@ -1,0 +1,53 @@
+{% if not workflow or not env %}
+<p class="muted">Scegli workflow ed environment per verificare le dipendenze.</p>
+{% elif not report %}
+<p class="notice warn">Nessuna dipendenza nota per <strong>{{ workflow.name }}</strong>.
+  <a href="/workflows/{{ workflow.id }}">Aggiungile dalla pagina del workflow</a>.</p>
+{% else %}
+{% set problems = report | rejectattr('status', 'equalto', 'ok') | list %}
+{% if not problems %}
+<p class="notice ok">Tutte le {{ report | length }} estensioni richieste sono installate in <strong>{{ env.name }}</strong>.</p>
+{% else %}
+<p class="notice {{ 'error' if problems | selectattr('status', 'equalto', 'missing') | list else 'warn' }}">
+  {{ problems | length }} estensioni su {{ report | length }} da sistemare in <strong>{{ env.name }}</strong>.
+  {% if problems | selectattr('status', 'equalto', 'missing') | list %}
+  I run falliranno finché le estensioni mancanti non saranno installate in <code>{{ env.knime_path }}</code>.
+  {% endif %}
+</p>
+{% endif %}
+<table>
+  <thead>
+    <tr><th>Estensione</th><th>Richiesta</th><th>Installata</th><th>Stato</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for dep in report %}
+    <tr>
+      <td>{{ dep.name or dep.feature_id }}<span class="muted"><code class="id">{{ dep.feature_id }}</code></span></td>
+      <td>{{ dep.required_version or '—' }}</td>
+      <td>{{ dep.installed_version or '—' }}</td>
+      <td>
+        {% if dep.status == 'ok' %}<span class="badge ok">Installata</span>
+        {% elif dep.status == 'outdated' %}<span class="badge outdated">Versione vecchia</span>
+        {% else %}<span class="badge missing">Mancante</span>{% endif %}
+      </td>
+      <td>
+        {% if dep.status != 'ok' %}
+          {% if dep.requested %}<span class="muted">nella lista dell'environment</span>
+          {% else %}
+          <button type="button" class="small secondary outline"
+                  hx-post="/environments/{{ env.id }}/request-extension"
+                  hx-vals='{"feature_id": "{{ dep.feature_id }}", "workflow_id": "{{ workflow.id }}"}'
+                  hx-target="#dependency-panel">Aggiungi all'environment</button>
+          {% endif %}
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p class="muted">
+  <a href="/workflows/{{ workflow.id }}">Gestisci le dipendenze del workflow</a> ·
+  <a href="/environments/{{ env.id }}">Apri l'environment</a> ·
+  L'installazione automatica delle estensioni non è ancora disponibile.
+</p>
+{% endif %}

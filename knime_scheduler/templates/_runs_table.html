@@ -1,0 +1,26 @@
+{% from "_macros.html" import status_badge %}
+{% if message %}<p class="notice warn">{{ message }}</p>{% endif %}
+{% set any_active = runs | selectattr('status', 'in', ACTIVE) | list %}
+<div id="runs-table" {% if any_active and refresh_url %}hx-get="{{ refresh_url }}" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %}>
+{% if runs %}
+<table class="striped">
+  <thead>
+    <tr><th>#</th>{% if show_schedule %}<th>Schedule</th>{% endif %}<th>Stato</th><th>Avvio</th><th>Durata</th><th>Origine</th></tr>
+  </thead>
+  <tbody>
+    {% for run in runs %}
+    <tr>
+      <td><a href="/runs/{{ run.id }}">{{ run.id }}</a></td>
+      {% if show_schedule %}<td><a href="/schedules/{{ run.schedule_id }}">{{ run.schedule.name }}</a></td>{% endif %}
+      <td>{{ status_badge(run.status) }}{% if run.error %}<span class="muted">{{ run.error | truncate(90) }}</span>{% endif %}</td>
+      <td>{{ (run.started_at or run.queued_at) | dt }}</td>
+      <td>{{ duration(run) }}</td>
+      <td>{{ 'manuale' if run.triggered_by == 'manual' else 'pianificato' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">Nessun run.</p>
+{% endif %}
+</div>

@@ -1,24 +1,17 @@
 """Connessione al database (SQLite di default)."""
 
-import os
+from pathlib import Path
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
-DATABASE_URL = os.environ.get("KNIME_SCHEDULER_DB", "sqlite:///data/knime_scheduler.db")
-
-
-def make_engine(url: str = DATABASE_URL):
-    if url.startswith("sqlite:///") and not url.startswith("sqlite:///:memory:"):
-        os.makedirs(os.path.dirname(url.removeprefix("sqlite:///")) or ".", exist_ok=True)
-    return create_engine(url)
+from .models import Base
 
 
-engine = make_engine()
-SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
-
-
-def init_db(bind=engine) -> None:
-    from .models import Base
-
-    Base.metadata.create_all(bind)
+def make_session_factory(url: str) -> sessionmaker[Session]:
+    """Crea engine e tabelle; per SQLite crea anche la cartella del file."""
+    if url.startswith("sqlite:///"):
+        Path(url.removeprefix("sqlite:///")).parent.mkdir(parents=True, exist_ok=True)
+    engine = create_engine(url)
+    Base.metadata.create_all(engine)
+    return sessionmaker(bind=engine, expire_on_commit=False)

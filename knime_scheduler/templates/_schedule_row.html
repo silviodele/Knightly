@@ -1,0 +1,27 @@
+{% from "_macros.html" import status_badge, trigger_text %}
+{% set sched = row.schedule %}
+<tr id="schedule-{{ sched.id }}">
+  <td>
+    <a href="/schedules/{{ sched.id }}"><strong>{{ sched.name }}</strong></a>
+    <span class="muted">{{ sched.workflow.name }} · {{ sched.environment.name }}</span>
+    {% if message %}<span class="badge queued">{{ message }}</span>{% endif %}
+  </td>
+  <td>{{ trigger_text(sched) }}</td>
+  <td>{{ row.next_run | dt if sched.active else '—' }}</td>
+  <td>
+    {% if row.last_run %}
+      <a href="/runs/{{ row.last_run.id }}">{{ status_badge(row.last_run.status) }}</a>
+      <span class="muted">{{ row.last_run.queued_at | dt }}</span>
+    {% else %}<span class="muted">mai eseguito</span>{% endif %}
+  </td>
+  <td>
+    {% if sched.active %}<span class="badge success">Attivo</span>{% else %}<span class="badge inactive">In pausa</span>{% endif %}
+  </td>
+  <td class="actions">
+    <button class="small" hx-post="/schedules/{{ sched.id }}/run"
+            hx-target="#schedule-{{ sched.id }}" hx-swap="outerHTML">Avvia</button>
+    <button class="small secondary outline" hx-post="/schedules/{{ sched.id }}/toggle"
+            hx-target="#schedule-{{ sched.id }}" hx-swap="outerHTML">
+      {{ 'Pausa' if sched.active else 'Riattiva' }}</button>
+  </td>
+</tr>
