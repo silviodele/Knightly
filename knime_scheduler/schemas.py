@@ -99,17 +99,11 @@ class CredentialOut(BaseModel):
     login: str = ""
 
 
-class ScheduleOut(ScheduleIn):
-    model_config = ConfigDict(from_attributes=True)
-    id: int
-    credentials: list[CredentialOut]  # mai restituire le password
-    next_run_time: datetime | None = None
-
-
 class RunOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     schedule_id: int
+    schedule_name: str = ""
     status: str
     triggered_by: str
     queued_at: datetime
@@ -119,6 +113,17 @@ class RunOut(BaseModel):
     error: str | None
 
 
+class ScheduleOut(ScheduleIn):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    credentials: list[CredentialOut]  # mai restituire le password
+    workflow_name: str = ""
+    environment_name: str = ""
+    next_run_time: datetime | None = None
+    last_run: RunOut | None = None
+    missing_dependencies: int = 0
+
+
 class DependencyCheckOut(BaseModel):
     feature_id: str
     name: str
@@ -126,3 +131,38 @@ class DependencyCheckOut(BaseModel):
     installed_version: str | None
     status: str
     requested: bool  # gia' nella lista estensioni dell'environment
+
+
+class ExtensionRequest(BaseModel):
+    feature_id: str = Field(min_length=1)
+
+
+class TriggerPreview(BaseModel):
+    valid: bool
+    error: str | None = None
+    next_runs: list[datetime] = []
+
+
+class DailyRuns(BaseModel):
+    day: str  # YYYY-MM-DD
+    success: int = 0
+    failed: int = 0
+    other: int = 0  # annullati / timeout
+
+
+class UpcomingRun(BaseModel):
+    schedule_id: int
+    schedule_name: str
+    next_run_time: datetime
+
+
+class Stats(BaseModel):
+    schedules_total: int
+    schedules_active: int
+    runs_active: int
+    runs_today: int
+    failed_24h: int
+    success_rate_7d: float | None  # 0..1, None se nessun run concluso
+    daily: list[DailyRuns]
+    upcoming: list[UpcomingRun]
+    recent_failures: list[RunOut]

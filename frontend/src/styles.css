@@ -1,0 +1,55 @@
+html {
+  overflow-y: auto;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+span.mono,
+div.mono:not(.v-input),
+.v-input.mono input,
+.v-input.mono .v-chip__content {
+  font-family: 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+  font-size: 0.85em;
+}
+
+.v-alert-title {
+  font-size: 1rem !important;
+  font-weight: 600;
+  line-height: 1.4 !important;
+}
+
+.text-subtle {
+  color: rgba(var(--v-theme-on-surface), 0.6);
+}
+
+.clickable-rows tbody tr {
+  cursor: pointer;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  backdrop-filter: blur(8px);
+  background: rgba(var(--v-theme-background), 0.85);
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}

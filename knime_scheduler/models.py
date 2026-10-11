@@ -128,6 +128,14 @@ class Schedule(Base):
     environment: Mapped[Environment] = relationship(back_populates="schedules")
     runs: Mapped[list["Run"]] = relationship(back_populates="schedule", cascade="all, delete-orphan")
 
+    @property
+    def workflow_name(self) -> str:
+        return self.workflow.name
+
+    @property
+    def environment_name(self) -> str:
+        return self.environment.name
+
 
 class Run(Base):
     __tablename__ = "runs"
@@ -144,3 +152,7 @@ class Run(Base):
     error: Mapped[str | None] = mapped_column(Text)
 
     schedule: Mapped[Schedule] = relationship(back_populates="runs")
+
+    @property
+    def schedule_name(self) -> str:
+        return self.schedule.name

@@ -1,9 +1,0 @@
-{% macro status_badge(status) -%}
-  <span class="badge {{ status }}">{{ STATUS_LABELS.get(status, status) }}</span>
-{%- endmacro %}
-
-{% macro trigger_text(schedule) -%}
-  {% if schedule.trigger_type == 'cron' %}<code>{{ schedule.trigger_value }}</code>
-  {% elif schedule.trigger_type == 'interval' %}ogni {{ schedule.trigger_value }} min
-  {% else %}il {{ schedule.trigger_value | replace('T', ' ') }}{% endif %}
-{%- endmacro %}

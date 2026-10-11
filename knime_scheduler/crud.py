@@ -7,6 +7,8 @@ import re
 import shutil
 import uuid
 import zipfile
+from collections.abc import Callable
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import BinaryIO
 
@@ -30,7 +32,17 @@ from .models import (
     WorkflowDependency,
 )
 from .scheduler import make_trigger
-from .schemas import DependencyCheckOut, DependencyIn, EnvironmentIn, ScheduleIn
+from .schemas import (
+    DailyRuns,
+    DependencyCheckOut,
+    DependencyIn,
+    EnvironmentIn,
+    RunOut,
+    ScheduleIn,
+    Stats,
+    TriggerPreview,
+    UpcomingRun,
+)
 
 
 # --- Environment -------------------------------------------------------------
@@ -210,3 +222,82 @@ def last_runs(s: Session, schedule_ids: list[int]) -> dict[int, Run]:
         select(func.max(Run.id)).where(Run.schedule_id.in_(schedule_ids)).group_by(Run.schedule_id)
     )
     return {run.schedule_id: run for run in s.scalars(select(Run).where(Run.id.in_(latest)))}
+
+
+# --- Trigger e statistiche ---------------------------------------------------
+
+def trigger_preview(trigger_type: str, trigger_value: str, count: int = 5) -> TriggerPreview:
+    """Valida il trigger e calcola i prossimi orari di esecuzione."""
+    try:
+        trigger = make_trigger(trigger_type, trigger_value)
+    except ValueError as exc:
+        return TriggerPreview(valid=False, error=str(exc))
+    now = datetime.now().astimezone()
+    runs: list[datetime] = []
+    previous = None
+    while len(runs) < count:
+        next_time = trigger.get_next_fire_time(previous, previous or now)
+        if next_time is None or next_time < now:
+            break
+        runs.append(next_time)
+        previous = next_time
+    return TriggerPreview(valid=True, next_runs=runs)
+
+
+def compute_stats(s: Session, next_run_time: Callable[[int], datetime | None]) -> Stats:
+    now = datetime.now()
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    schedules = s.scalars(select(Schedule)).all()
+
+    def count(*where) -> int:
+        return s.scalar(select(func.count(Run.id)).where(*where)) or 0
+
+    finished_7d = s.execute(
+        select(Run.status, func.count(Run.id))
+        .where(Run.finished_at >= now - timedelta(days=7))
+        .group_by(Run.status)
+    ).all()
+    by_status = dict(finished_7d)
+    concluded = sum(by_status.values())
+
+    days = {(today - timedelta(days=i)).date().isoformat(): DailyRuns(day=(today - timedelta(days=i)).date().isoformat())
+            for i in range(13, -1, -1)}
+    for run in s.scalars(select(Run).where(Run.queued_at >= today - timedelta(days=13))):
+        bucket = days.get(run.queued_at.date().isoformat())
+        if bucket is None:
+            continue
+        if run.status == RunStatus.SUCCESS:
+            bucket.success += 1
+        elif run.status == RunStatus.FAILED:
+            bucket.failed += 1
+        elif run.status in (RunStatus.CANCELLED, RunStatus.TIMEOUT):
+            bucket.other += 1
+
+    upcoming = sorted(
+        (
+            UpcomingRun(schedule_id=x.id, schedule_name=x.name, next_run_time=t)
+            for x in schedules
+            if (t := next_run_time(x.id)) is not None
+        ),
+        key=lambda u: u.next_run_time,
+    )[:6]
+    failures = s.scalars(
+        select(Run)
+        .where(Run.status.in_((RunStatus.FAILED, RunStatus.TIMEOUT)))
+        .order_by(Run.id.desc())
+        .limit(5)
+    ).all()
+
+    return Stats(
+        schedules_total=len(schedules),
+        schedules_active=sum(1 for x in schedules if x.active),
+        runs_active=count(Run.status.in_((RunStatus.QUEUED, RunStatus.RUNNING))),
+        runs_today=count(Run.queued_at >= today),
+        failed_24h=count(
+            Run.status.in_((RunStatus.FAILED, RunStatus.TIMEOUT)), Run.finished_at >= now - timedelta(days=1)
+        ),
+        success_rate_7d=by_status.get(RunStatus.SUCCESS, 0) / concluded if concluded else None,
+        daily=list(days.values()),
+        upcoming=upcoming,
+        recent_failures=[RunOut.model_validate(r) for r in failures],
+    )

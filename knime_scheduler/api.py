@@ -1,17 +1,20 @@
 """API REST JSON."""
 
+import asyncio
+import json
 from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import crud
 from .app import get_or_404, get_service, get_session
 from .dependencies import installed_features
-from .models import Environment, Run, Schedule, Workflow
+from .models import Environment, Run, RunStatus, Schedule, TriggerType, Workflow
 from .scheduler import SchedulerService
 from .schemas import (
     DependencyCheckOut,
@@ -19,9 +22,12 @@ from .schemas import (
     DependencyOut,
     EnvironmentIn,
     EnvironmentOut,
+    ExtensionRequest,
     RunOut,
     ScheduleIn,
     ScheduleOut,
+    Stats,
+    TriggerPreview,
     WorkflowOut,
 )
 
@@ -63,6 +69,14 @@ def update_environment(env_id: int, data: EnvironmentIn, s: SessionDep):
 @router.delete("/environments/{env_id}", status_code=204)
 def delete_environment(env_id: int, s: SessionDep):
     _validation(crud.delete_environment, s, get_or_404(s, Environment, env_id))
+
+
+@router.post("/environments/{env_id}/extensions", response_model=EnvironmentOut)
+def request_extension(env_id: int, data: ExtensionRequest, s: SessionDep):
+    """Aggiunge una feature alla lista delle estensioni richieste dall'environment."""
+    env = get_or_404(s, Environment, env_id)
+    crud.request_extension(s, env, data.feature_id)
+    return env
 
 
 @router.get("/environments/{env_id}/features")
@@ -123,34 +137,61 @@ def delete_dependency(workflow_id: int, dependency_id: int, s: SessionDep):
 
 # --- Schedule ----------------------------------------------------------------
 
-def _schedule_out(schedule: Schedule, service: SchedulerService) -> ScheduleOut:
-    out = ScheduleOut.model_validate(schedule)
-    out.next_run_time = service.next_run_time(schedule.id)
-    return out
+def _schedule_outs(s: Session, schedules: list[Schedule], service: SchedulerService) -> list[ScheduleOut]:
+    last = crud.last_runs(s, [x.id for x in schedules])
+    result = []
+    for schedule in schedules:
+        out = ScheduleOut.model_validate(schedule)
+        out.next_run_time = service.next_run_time(schedule.id)
+        if schedule.id in last:
+            out.last_run = RunOut.model_validate(last[schedule.id])
+        out.missing_dependencies = sum(
+            1 for d in crud.dependency_report(schedule.workflow, schedule.environment) if d.status == "missing"
+        )
+        result.append(out)
+    return result
+
+
+def _schedule_out(s: Session, schedule: Schedule, service: SchedulerService) -> ScheduleOut:
+    return _schedule_outs(s, [schedule], service)[0]
 
 
 @router.get("/schedules", response_model=list[ScheduleOut])
 def list_schedules(s: SessionDep, service: ServiceDep):
-    return [_schedule_out(x, service) for x in s.scalars(select(Schedule).order_by(Schedule.name))]
+    return _schedule_outs(s, s.scalars(select(Schedule).order_by(Schedule.name)).all(), service)
 
 
 @router.post("/schedules", response_model=ScheduleOut, status_code=201)
 def create_schedule(data: ScheduleIn, s: SessionDep, service: ServiceDep):
     schedule = _validation(crud.save_schedule, s, data)
     service.sync_schedule(schedule)
-    return _schedule_out(schedule, service)
+    return _schedule_out(s, schedule, service)
 
 
 @router.get("/schedules/{schedule_id}", response_model=ScheduleOut)
 def get_schedule(schedule_id: int, s: SessionDep, service: ServiceDep):
-    return _schedule_out(get_or_404(s, Schedule, schedule_id), service)
+    return _schedule_out(s, get_or_404(s, Schedule, schedule_id), service)
 
 
 @router.put("/schedules/{schedule_id}", response_model=ScheduleOut)
 def update_schedule(schedule_id: int, data: ScheduleIn, s: SessionDep, service: ServiceDep):
     schedule = _validation(crud.save_schedule, s, data, get_or_404(s, Schedule, schedule_id))
     service.sync_schedule(schedule)
-    return _schedule_out(schedule, service)
+    return _schedule_out(s, schedule, service)
+
+
+class ActiveIn(BaseModel):
+    active: bool
+
+
+@router.patch("/schedules/{schedule_id}/active", response_model=ScheduleOut)
+def set_schedule_active(schedule_id: int, data: ActiveIn, s: SessionDep, service: ServiceDep):
+    """Mette in pausa o riattiva lo schedule."""
+    schedule = get_or_404(s, Schedule, schedule_id)
+    schedule.active = data.active
+    s.commit()
+    service.sync_schedule(schedule)
+    return _schedule_out(s, schedule, service)
 
 
 @router.delete("/schedules/{schedule_id}", status_code=204)
@@ -173,6 +214,25 @@ def run_schedule(schedule_id: int, s: SessionDep, service: ServiceDep):
         raise HTTPException(409, "C'e' gia' un run attivo e lo schedule e' impostato su 'salta'")
     s.expire_all()
     return s.get(Run, run_id)
+
+
+@router.get("/dependency-check", response_model=list[DependencyCheckOut])
+def dependency_check(workflow_id: int, environment_id: int, s: SessionDep):
+    """Dipendenze di un workflow confrontate con un environment (form dello schedule)."""
+    return crud.dependency_report(
+        get_or_404(s, Workflow, workflow_id), get_or_404(s, Environment, environment_id)
+    )
+
+
+@router.get("/triggers/preview", response_model=TriggerPreview)
+def preview_trigger(trigger_type: TriggerType, trigger_value: str, count: int = 5):
+    """Valida un trigger e restituisce i prossimi orari di esecuzione."""
+    return crud.trigger_preview(trigger_type, trigger_value, min(count, 20))
+
+
+@router.get("/stats", response_model=Stats)
+def stats(s: SessionDep, service: ServiceDep):
+    return crud.compute_stats(s, service.next_run_time)
 
 
 # --- Run ---------------------------------------------------------------------
@@ -206,3 +266,37 @@ def run_log(run_id: int, s: SessionDep):
     if not run.log_path or not Path(run.log_path).is_file():
         return ""
     return Path(run.log_path).read_text(encoding="utf-8", errors="replace")
+
+
+@router.get("/runs/{run_id}/log/stream")
+async def stream_log(run_id: int, request: Request, s: SessionDep):
+    """Server-Sent Events: evento 'line' per ogni riga di log, 'done' (con lo stato) a run concluso."""
+    get_or_404(s, Run, run_id)
+    session_factory = request.app.state.session_factory
+    active = (RunStatus.QUEUED, RunStatus.RUNNING)
+
+    def snapshot() -> tuple[str, str | None]:
+        with session_factory() as session:
+            run = session.get(Run, run_id)
+            return (run.status, run.log_path) if run else (RunStatus.CANCELLED, None)
+
+    async def events():
+        position = 0
+        while not await request.is_disconnected():
+            status, log_path = snapshot()
+            finished = status not in active
+            if log_path and Path(log_path).is_file():
+                with open(log_path, "rb") as f:
+                    f.seek(position)
+                    for raw in f:
+                        if not raw.endswith(b"\n") and not finished:
+                            break  # riga ancora in scrittura
+                        position += len(raw)
+                        line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
+                        yield f"event: line\ndata: {json.dumps(line)}\n\n"
+            if finished:
+                yield f"event: done\ndata: {json.dumps(status)}\n\n"
+                return
+            await asyncio.sleep(0.5)
+
+    return StreamingResponse(events(), media_type="text/event-stream")

@@ -138,82 +138,72 @@ def test_replacing_workflow_file_keeps_manual_dependencies(client):
     assert deps == {"com.example.extra.feature.group": "manual", PYTHON: "detected"}
 
 
-# --- pagine ------------------------------------------------------------------
+# --- endpoint per l'interfaccia ----------------------------------------------
 
-def test_pages_render(client):
+def test_schedule_list_has_last_run_and_missing_dependencies(client):
     env = create_env(client)
     wf = upload_wf(client, CORE, PYTHON)
     sched = create_schedule(client, env["id"], wf["id"])
-    run_id = client.post(f"/api/schedules/{sched['id']}/run").json()["id"]
-    wait_finished(client, run_id)
-    for url in ["/schedules", "/schedules/new", f"/schedules/{sched['id']}", "/environments",
-                "/environments/new", f"/environments/{env['id']}", "/workflows", f"/workflows/{wf['id']}",
-                "/runs", "/runs?status=failed", f"/runs/{run_id}"]:
-        r = client.get(url)
-        assert r.status_code == 200, url
-    assert client.get("/", follow_redirects=False).headers["location"] == "/schedules"
+    run = wait_finished(client, client.post(f"/api/schedules/{sched['id']}/run").json()["id"])
+    [item] = client.get("/api/schedules").json()
+    assert item["workflow_name"] == "report" and item["environment_name"] == "KNIME 5.3"
+    assert item["missing_dependencies"] == 1
+    assert item["last_run"]["id"] == run["id"] and item["last_run"]["schedule_name"] == "Report"
 
 
-def test_dependency_panel_and_request_extension(client):
-    env = create_env(client)
-    wf = upload_wf(client, CORE, PYTHON)
-    html = client.get(f"/dependency-panel?workflow_id={wf['id']}&environment_id={env['id']}").text
-    assert "Mancante" in html and "Installata" in html and "Aggiungi all'environment" in html
-    html = client.post(f"/environments/{env['id']}/request-extension",
-                       data={"feature_id": PYTHON, "workflow_id": str(wf["id"])}).text
-    assert "nella lista dell'environment" in html
-    assert "non è ancora disponibile" in html
-    assert PYTHON in client.get(f"/api/environments/{env['id']}").json()["extensions"]
-    assert "Scegli workflow" in client.get("/dependency-panel").text
-
-
-def test_schedule_form_create_and_errors(client):
-    env = create_env(client)
-    wf = upload_wf(client, CORE)
-    form = {"name": "Da form", "workflow_id": str(wf["id"]), "environment_id": str(env["id"]),
-            "trigger_type": "cron", "trigger_value": "sbagliato", "concurrency": "queue", "active": "on",
-            "var_name": ["mese", ""], "var_type": ["int", "String"], "var_value": ["10", ""]}
-    r = client.post("/schedules/new", data=form, follow_redirects=False)
-    assert r.status_code == 422 and "Pianificazione non valida" in r.text and 'value="mese"' in r.text
-
-    form["trigger_value"] = "30 7 * * *"
-    r = client.post("/schedules/new", data=form, follow_redirects=False)
-    assert r.status_code == 303
-    sched = client.get(r.headers["location"].replace("/schedules", "/api/schedules")).json()
-    assert sched["concurrency"] == "queue" and sched["variables"] == [{"name": "mese", "type": "int", "value": "10"}]
-
-
-def test_environment_and_workflow_forms(client):
-    r = client.post("/environments/new", data={"name": "Form env", "knime_path": client.knime_path,
-                                               "jvm_args": "-Xmx2g\n-Dfoo=1", "env_vars": "senza uguale"})
-    assert r.status_code == 422 and "chiave=valore" in r.text
-    r = client.post("/environments/new", data={"name": "Form env", "knime_path": client.knime_path,
-                                               "jvm_args": "-Xmx2g\n-Dfoo=1", "env_vars": "A=1"},
-                    follow_redirects=False)
-    assert r.status_code == 303
-    assert "org.knime.features.base.feature.group" in client.get(r.headers["location"]).text
-
-    r = client.post("/workflows", files={"file": ("wf.knwf", knwf_bytes(CORE))}, follow_redirects=False)
-    assert r.status_code == 303
-    wf_url = r.headers["location"]
-    html = client.post(f"{wf_url}/dependencies", data={"feature_id": "com.example.x"}).text
-    assert "com.example.x.feature.group" in html and "manuale" in html
-    assert "Dipendenza gia" in client.post(f"{wf_url}/dependencies", data={"feature_id": "com.example.x"}).text
-    r = client.post("/workflows", files={"file": ("wf.txt", b"x")})
-    assert r.status_code == 422 and ".knwf" in r.text
-
-
-def test_run_buttons_and_log_stream(client):
+def test_pause_and_resume(client):
     env = create_env(client)
     wf = upload_wf(client, CORE)
     sched = create_schedule(client, env["id"], wf["id"])
-    row = client.post(f"/schedules/{sched['id']}/run").text
-    assert f'id="schedule-{sched["id"]}"' in row
-    runs = client.post(f"/schedules/{sched['id']}/run", headers={"HX-Target": "runs"}).text
-    assert 'id="runs-table"' in runs
-    run_id = client.get("/api/runs").json()[0]["id"]
-    wait_finished(client, run_id)
-    stream = client.get(f"/runs/{run_id}/log/stream").text
-    assert "event: line" in stream and "Workflow executed" in stream and stream.endswith("event: done\ndata: \n\n")
-    toggled = client.post(f"/schedules/{sched['id']}/toggle").text
-    assert "In pausa" in toggled
+    paused = client.patch(f"/api/schedules/{sched['id']}/active", json={"active": False}).json()
+    assert paused["active"] is False and paused["next_run_time"] is None
+    resumed = client.patch(f"/api/schedules/{sched['id']}/active", json={"active": True}).json()
+    assert resumed["next_run_time"] is not None
+
+
+def test_dependency_check_and_request_extension(client):
+    env = create_env(client)
+    wf = upload_wf(client, CORE, PYTHON)
+    report = client.get(f"/api/dependency-check?workflow_id={wf['id']}&environment_id={env['id']}").json()
+    assert {d["feature_id"]: (d["status"], d["requested"]) for d in report} == {
+        CORE: ("ok", False), PYTHON: ("missing", False)}
+    r = client.post(f"/api/environments/{env['id']}/extensions", json={"feature_id": PYTHON})
+    assert PYTHON in r.json()["extensions"]
+    report = client.get(f"/api/dependency-check?workflow_id={wf['id']}&environment_id={env['id']}").json()
+    assert next(d for d in report if d["feature_id"] == PYTHON)["requested"] is True
+
+
+def test_trigger_preview(client):
+    ok = client.get("/api/triggers/preview", params={"trigger_type": "cron", "trigger_value": "0 6 * * 1-5"}).json()
+    assert ok["valid"] and len(ok["next_runs"]) == 5
+    bad = client.get("/api/triggers/preview", params={"trigger_type": "cron", "trigger_value": "x"}).json()
+    assert not bad["valid"] and bad["error"]
+
+
+def test_stats(client):
+    env = create_env(client)
+    wf = upload_wf(client, CORE, PYTHON)  # Python mancante: il run fallisce
+    sched = create_schedule(client, env["id"], wf["id"])
+    wait_finished(client, client.post(f"/api/schedules/{sched['id']}/run").json()["id"])
+    stats = client.get("/api/stats").json()
+    assert stats["schedules_total"] == 1 and stats["schedules_active"] == 1
+    assert stats["runs_today"] == 1 and stats["failed_24h"] == 1 and stats["success_rate_7d"] == 0
+    assert len(stats["daily"]) == 14 and stats["daily"][-1]["failed"] == 1
+    assert stats["upcoming"][0]["schedule_name"] == "Report"
+    assert stats["recent_failures"][0]["schedule_name"] == "Report"
+
+
+def test_log_stream(client):
+    env = create_env(client)
+    wf = upload_wf(client, CORE)
+    sched = create_schedule(client, env["id"], wf["id"])
+    run = wait_finished(client, client.post(f"/api/schedules/{sched['id']}/run").json()["id"])
+    stream = client.get(f"/api/runs/{run['id']}/log/stream").text
+    assert 'event: line' + chr(10) + 'data: "Workflow executed sucessfully."' in stream
+    assert stream.endswith('event: done' + chr(10) + 'data: "success"' + chr(10) * 2)
+
+
+def test_spa_fallback(client):
+    r = client.get("/schedules/3")
+    assert r.status_code in (200, 503)  # 200 se il frontend e' compilato, altrimenti istruzioni
+    assert client.get("/api/non-esiste").status_code == 404

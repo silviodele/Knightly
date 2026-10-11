@@ -178,7 +178,27 @@ def test_make_trigger_valid(ttype, value):
     assert make_trigger(ttype, value)
 
 
-@pytest.mark.parametrize("ttype, value", [("cron", "not a cron"), ("interval", "0"),
+@pytest.mark.parametrize("expr, expected", [
+    ("0 6 * * 1-5", {"Mon", "Tue", "Wed", "Thu", "Fri"}),
+    ("0 6 * * 0", {"Sun"}),
+    ("0 6 * * 7", {"Sun"}),
+    ("0 6 * * 6,0", {"Sat", "Sun"}),
+    ("0 6 * * */2", {"Sun", "Tue", "Thu", "Sat"}),
+    ("0 6 * * mon-fri", {"Mon", "Tue", "Wed", "Thu", "Fri"}),
+    ("0 6 * * *", {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}),
+])
+def test_cron_day_of_week_follows_standard_crontab(expr, expected):
+    trigger = make_trigger("cron", expr)
+    now = datetime(2026, 10, 11, 12, 0).astimezone()  # domenica
+    days, previous = set(), None
+    for _ in range(14):
+        previous = trigger.get_next_fire_time(previous, previous or now)
+        days.add(previous.strftime("%a"))
+        previous += timedelta(minutes=1)
+    assert days == expected
+
+
+@pytest.mark.parametrize("ttype, value", [("cron", "not a cron"), ("cron", "0 6 * * 8"), ("interval", "0"),
                                           ("interval", "abc"), ("date", "domani"), ("boh", "1")])
 def test_make_trigger_invalid(ttype, value):
     with pytest.raises(ValueError):

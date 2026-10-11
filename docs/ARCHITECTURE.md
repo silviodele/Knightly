@@ -9,7 +9,8 @@ Modello concettuale ripreso da NodePit Runner
 - **Executor** (`executor.py`): lancia KNIME in batch mode, cattura output ed exit code, timeout e annullamento
 - **Dependencies** (`dependencies.py`): legge dal .knwf le estensioni usate e le confronta con l'environment
 - **Storage** (SQLAlchemy + SQLite): environment, workflow, dipendenze, schedule, run
-- **API/UI** (FastAPI + Jinja2/HTMX): `/api/...` JSON, `/` pagine HTML; log live via Server-Sent Events
+- **API** (FastAPI): `/api/...` JSON, unico contratto con il frontend; log live via Server-Sent Events
+- **UI** (Vue 3 + Vuetify, in `frontend/`): single page app compilata in `knime_scheduler/webapp/` e servita da FastAPI
 - **Notifier**: email/webhook su fallimento
 
 ## Modello dati
@@ -47,16 +48,21 @@ Environment ──< Schedule >── Workflow ──< WorkflowDependency
 - Ogni notte alle 3 elimina run e log piu' vecchi della retention dello schedule.
 - `on_run_finished` permette di agganciare notifiche e aggiornamenti della UI.
 
-## Interfaccia web e API
-- **Schedule**: elenco con prossimo/ultimo run, avvio manuale, pausa. Il form ha il **pannello dipendenze**
-  che si aggiorna (HTMX) quando cambiano workflow o environment, con il pulsante "Aggiungi all'environment"
-  per le estensioni mancanti; variabili e credenziali a righe dinamiche; storico dei run aggiornato ogni 3s.
-- **Workflow**: caricamento .knwf con rilevamento dipendenze, aggiunta/rimozione manuale, nuova versione del file
-  (le dipendenze manuali restano).
-- **Environment**: configurazione ed elenco delle estensioni installate lette da `features/`.
-- **Run**: elenco filtrabile, dettaglio con log in tempo reale (Server-Sent Events) e annullamento.
-- Le password delle credenziali non vengono mai restituite da API e pagine (campo vuoto = mantieni).
-- API REST sotto `/api` (documentazione OpenAPI su `/docs`), stessa logica delle pagine (`crud.py`).
+## Interfaccia web
+Layout dashboard con menu laterale, tema chiaro/scuro.
+- **Dashboard**: KPI (schedule attivi, run in corso, run oggi, falliti 24h, % successo 7 giorni), grafico
+  dei run degli ultimi 14 giorni, prossime esecuzioni, ultimi errori, avviso per schedule con estensioni mancanti.
+- **Schedule**: tabella con ricerca, prossimo/ultimo run, attiva/pausa, avvio manuale. Il form ha il
+  **pannello dipendenze** (aggiornato al cambio di workflow/environment, "Aggiungi all'environment"),
+  editor del trigger con modelli e **anteprima dei prossimi 5 orari**, scelta della concorrenza,
+  variabili e credenziali, storico run in una scheda.
+- **Run**: elenco filtrabile per stato e schedule; dettaglio con **log in tempo reale** (SSE), filtro,
+  evidenziazione di WARN/ERROR, download, annullamento e riesecuzione.
+- **Workflow**: caricamento .knwf trascinando i file, dipendenze rilevate e manuali, nuova versione del file.
+- **Environment**: configurazione ed estensioni installate lette da `features/`.
+
+Endpoint pensati per la UI: `/api/stats`, `/api/triggers/preview`, `/api/dependency-check`,
+`/api/environments/{id}/extensions`, `PATCH /api/schedules/{id}/active`, `/api/runs/{id}/log/stream`.
 
 ## Isolamento
 Ogni Environment e' una installazione KNIME locale (cartella su disco). L'esecuzione e' dietro
@@ -69,6 +75,10 @@ knime -nosplash -consoleLog -nosave -reset -application org.knime.product.KNIME_
       -credential=nome;login;password -preferences=<file.epf> -vmargs -Xmx4g
 ```
 Exit code: 0 successo, 2 parametri errati, 3 errore di caricamento, 4 errore in esecuzione.
+
+## Note
+- Cron in formato standard (0/7 = domenica): APScheduler 3 conta da 0 = lunedi', quindi `make_trigger`
+  converte il giorno della settimana in nomi (`mon`…`sun`).
 
 ## Da verificare su una installazione KNIME reale
 - Le chiavi `node-feature-*` nei `settings.xml` (il parser e' testato su file sintetici)

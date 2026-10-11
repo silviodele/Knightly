@@ -13,14 +13,25 @@ Scheduler open source per workflow KNIME, ispirato a [NodePit Runner](https://no
 - Interfaccia web + API REST
 
 ## Stack
-Python 3.11+ · FastAPI · APScheduler · SQLAlchemy/SQLite · Jinja2 + HTMX
+Backend: Python 3.11+ · FastAPI · APScheduler · SQLAlchemy/SQLite
+
+Frontend: Vue 3 · Vite · TypeScript · Vuetify 4 (tutte dipendenze MIT/Apache)
 
 ## Sviluppo
+Backend:
 ```
 python -m venv .venv
 .venv\Scripts\activate
 pip install -e ".[dev]"
 pytest
+python -m knime_scheduler          # API su http://127.0.0.1:8000
+```
+Frontend (serve Node.js solo in sviluppo):
+```
+cd frontend
+npm install
+npm run dev                        # http://localhost:5173, le chiamate /api vanno al backend
+npm run build                      # compila in knime_scheduler/webapp/, servita da FastAPI
 ```
 
 ## Avvio
@@ -28,7 +39,7 @@ pytest
 python -m knime_scheduler            # http://127.0.0.1:8000
 python -m knime_scheduler --host 0.0.0.0 --port 8080 --data-dir D:\knime-scheduler-data
 ```
-- Interfaccia web: `/` (Schedule, Workflow, Environment, Run)
+- Interfaccia web: `/` (Dashboard, Schedule, Run, Workflow, Environment) — richiede `npm run build`
 - API REST: `/api/...`, documentazione interattiva su `/docs`
 - Dati (database SQLite, workflow caricati, log dei run) in `./data` o nella cartella `--data-dir`
 
@@ -40,7 +51,8 @@ python -m knime_scheduler --host 0.0.0.0 --port 8080 --data-dir D:\knime-schedul
   - `scheduler.py` - trigger, coda dei run, concorrenza, annullamento, pulizia storico
   - `crud.py` - operazioni sul dominio condivise da API e pagine
   - `api.py` - API REST JSON (`/api`)
-  - `web.py`, `templates/`, `static/` - interfaccia web (Jinja2 + HTMX + Pico CSS)
+  - `webapp/` - build del frontend (generata, non versionata)
+- `frontend/` - interfaccia web Vue 3 + Vuetify
 - `tests/` - test (con un finto eseguibile KNIME)
 - `docs/` - architettura e note di progetto
 - `workflows/` - workflow KNIME di esempio (.knwf)

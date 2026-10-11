@@ -9,3 +9,6 @@ data/
 
 *.egg-info/
 .pytest_cache/
+# build del frontend (npm run build in frontend/)
+knime_scheduler/webapp/
+frontend/dist/

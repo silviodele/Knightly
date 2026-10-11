@@ -1,4 +1,4 @@
-"""Applicazione FastAPI: API JSON sotto /api, pagine HTML (Jinja2 + HTMX) sotto /."""
+"""Applicazione FastAPI: API JSON sotto /api, interfaccia Vue (build in webapp/) sotto /."""
 
 import os
 from collections.abc import Iterator
@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
@@ -13,6 +14,7 @@ from .db import make_session_factory
 from .scheduler import SchedulerService
 
 HERE = Path(__file__).parent
+WEBAPP_DIR = HERE / "webapp"  # build del frontend Vue (npm run build in frontend/)
 
 
 def create_app(
@@ -43,12 +45,34 @@ def create_app(
     app.state.service = service
     app.state.workflows_dir = data_dir / "workflows"
 
-    from . import api, web
+    from . import api
 
-    app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
     app.include_router(api.router)
-    app.include_router(web.router)
+    _mount_webapp(app)
     return app
+
+
+def _mount_webapp(app: FastAPI) -> None:
+    """Serve la single page app Vue: file statici + index.html per tutte le altre route."""
+    index = WEBAPP_DIR / "index.html"
+    if (WEBAPP_DIR / "assets").is_dir():
+        app.mount("/assets", StaticFiles(directory=WEBAPP_DIR / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def spa(path: str):
+        if path.startswith("api/"):
+            raise HTTPException(404)
+        candidate = (WEBAPP_DIR / path).resolve()
+        if path and candidate.is_file() and candidate.is_relative_to(WEBAPP_DIR.resolve()):
+            return FileResponse(candidate)
+        if index.is_file():
+            return FileResponse(index)
+        return HTMLResponse(
+            "<h1>knime-scheduler</h1><p>Interfaccia non compilata: esegui <code>npm install</code> e "
+            "<code>npm run build</code> nella cartella <code>frontend/</code>. "
+            "Le API sono documentate su <a href='/docs'>/docs</a>.</p>",
+            status_code=503,
+        )
 
 
 # --- dipendenze FastAPI ------------------------------------------------------

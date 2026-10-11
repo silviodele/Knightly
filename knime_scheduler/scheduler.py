@@ -33,11 +33,45 @@ KNIME_EXIT_CODES = {
 }
 
 
+_DAY_NAMES = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+
+
+def _crontab_day_of_week(field: str) -> str:
+    """Converte il giorno della settimana dal cron standard (0/7 = domenica) ai nomi.
+
+    APScheduler 3 conta da 0 = lunedi': senza conversione "1-5" diventerebbe mar-sab.
+    """
+    if not any(ch.isdigit() for ch in field):
+        return field  # "*" o nomi (mon-fri), gia' corretti
+    days: set[int] = set()
+    for part in field.split(","):
+        base, _, step_text = part.partition("/")
+        step = int(step_text) if step_text else 1
+        if base == "*":
+            start, end = 0, 6
+        elif "-" in base:
+            start, end = (int(x) for x in base.split("-", 1))
+        else:
+            start = int(base)
+            end = 6 if step_text else start
+        if not (0 <= start <= 7 and 0 <= end <= 7 and start <= end and step > 0):
+            raise ValueError(f"Giorno della settimana non valido: {part!r}")
+        days.update(d % 7 for d in range(start, end + 1, step))
+    return ",".join(_DAY_NAMES[d] for d in sorted(days))
+
+
 def make_trigger(trigger_type: str, value: str):
     """Crea il trigger APScheduler; ValueError se il valore non e' valido."""
     match trigger_type:
         case TriggerType.CRON:
-            return CronTrigger.from_crontab(value)
+            fields = value.split()
+            if len(fields) != 5:
+                raise ValueError("L'espressione cron deve avere 5 campi: minuto ora giorno mese giorno-settimana")
+            minute, hour, day, month, day_of_week = fields
+            return CronTrigger(
+                minute=minute, hour=hour, day=day, month=month,
+                day_of_week=_crontab_day_of_week(day_of_week),
+            )
         case TriggerType.INTERVAL:
             minutes = int(value)
             if minutes <= 0:

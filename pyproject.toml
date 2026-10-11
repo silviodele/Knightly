@@ -11,7 +11,6 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.110",
     "uvicorn[standard]>=0.29",
-    "jinja2>=3.1",
     "python-multipart>=0.0.9",
     "sqlalchemy>=2.0",
     "apscheduler>=3.10,<4",
@@ -27,7 +26,7 @@ knime-scheduler = "knime_scheduler.__main__:main"
 include = ["knime_scheduler*"]
 
 [tool.setuptools.package-data]
-knime_scheduler = ["templates/*.html", "static/*"]
+knime_scheduler = ["webapp/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
