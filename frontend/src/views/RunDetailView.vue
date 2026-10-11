@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { api, type Run } from '@/api'
 import LogViewer from '@/components/LogViewer.vue'
 import StatusChip from '@/components/StatusChip.vue'
+import { can } from '@/auth'
 import { confirm } from '@/confirm'
 import { formatDateTime, isActive, runDuration } from '@/format'
 import { notify, notifyError } from '@/notify'
@@ -63,7 +64,10 @@ const facts = computed(() =>
         { label: 'Exit code', value: run.value.exit_code ?? '—', icon: 'mdi-numeric' },
         {
           label: 'Origine',
-          value: run.value.triggered_by === 'manual' ? 'Manuale' : 'Pianificato',
+          value:
+            run.value.triggered_by === 'manual'
+              ? `Manuale${run.value.triggered_by_user ? ` · ${run.value.triggered_by_user}` : ''}`
+              : 'Pianificato',
           icon: run.value.triggered_by === 'manual' ? 'mdi-hand-back-right-outline' : 'mdi-calendar-clock',
         },
       ]
@@ -83,8 +87,10 @@ const facts = computed(() =>
         <router-link :to="`/schedules/${run.schedule_id}`" class="text-subtle">{{ run.schedule_name }}</router-link>
       </div>
       <v-spacer />
-      <v-btn v-if="isActive(run.status)" color="error" variant="tonal" prepend-icon="mdi-stop" @click="cancel">Annulla run</v-btn>
-      <v-btn v-else color="primary" variant="tonal" prepend-icon="mdi-replay" @click="rerun">Esegui di nuovo</v-btn>
+      <template v-if="can('operator')">
+        <v-btn v-if="isActive(run.status)" color="error" variant="tonal" prepend-icon="mdi-stop" @click="cancel">Annulla run</v-btn>
+        <v-btn v-else color="primary" variant="tonal" prepend-icon="mdi-replay" @click="rerun">Esegui di nuovo</v-btn>
+      </template>
     </div>
 
     <v-alert v-if="run.error" type="error" variant="tonal" class="mb-4" :title="run.status === 'timeout' ? 'Timeout' : 'Errore'">

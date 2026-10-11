@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { api, type Environment, type Schedule } from '@/api'
+import { can } from '@/auth'
 import { notifyError } from '@/notify'
 
 const environments = ref<(Environment & { installed: number | null; schedules: number })[]>([])
@@ -33,7 +34,7 @@ onMounted(async () => {
         <div class="text-subtle">Installazioni KNIME locali con estensioni, preferenze e impostazioni JVM</div>
       </div>
       <v-spacer />
-      <v-btn color="primary" prepend-icon="mdi-plus" to="/environments/new">Nuovo environment</v-btn>
+      <v-btn v-if="can('operator')" color="primary" prepend-icon="mdi-plus" to="/environments/new">Nuovo environment</v-btn>
     </div>
 
     <v-row v-if="loading">
@@ -76,7 +77,7 @@ onMounted(async () => {
         title="Nessun environment"
         text="Un environment indica quale installazione KNIME usare per eseguire i workflow."
       >
-        <template #actions>
+        <template v-if="can('operator')" #actions>
           <v-btn color="primary" to="/environments/new">Crea il primo environment</v-btn>
         </template>
       </v-empty-state>

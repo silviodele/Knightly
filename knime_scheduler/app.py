@@ -45,8 +45,11 @@ def create_app(
     app.state.service = service
     app.state.workflows_dir = data_dir / "workflows"
 
-    from . import api
+    from . import api, auth
 
+    app.state.login_throttle = auth.LoginThrottle()
+    app.include_router(auth.router)
+    app.include_router(auth.users_router)
     app.include_router(api.router)
     _mount_webapp(app)
     return app

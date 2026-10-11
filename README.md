@@ -39,9 +39,19 @@ npm run build                      # compila in knime_scheduler/webapp/, servita
 python -m knime_scheduler            # http://127.0.0.1:8000
 python -m knime_scheduler --host 0.0.0.0 --port 8080 --data-dir D:\knime-scheduler-data
 ```
-- Interfaccia web: `/` (Dashboard, Schedule, Run, Workflow, Environment) — richiede `npm run build`
-- API REST: `/api/...`, documentazione interattiva su `/docs`
+- Al primo accesso l'interfaccia chiede di creare l'amministratore. In alternativa:
+  `python -m knime_scheduler create-user admin --role admin` (chiede la password).
+- Password dimenticata: `python -m knime_scheduler reset-password <utente>`.
+- Interfaccia web: `/` (Dashboard, Schedule, Run, Workflow, Environment, Utenti) — richiede `npm run build`
+- API REST: `/api/...`, documentazione interattiva su `/docs` (serve il login)
 - Dati (database SQLite, workflow caricati, log dei run) in `./data` o nella cartella `--data-dir`
+
+## Utenti e ruoli
+| Ruolo | Può |
+|---|---|
+| Lettore | vedere dashboard, schedule, run e log |
+| Operatore | anche creare/modificare schedule, workflow, environment e avviare/annullare run |
+| Amministratore | anche gestire gli utenti |
 
 ## Struttura
 - `knime_scheduler/` - codice applicativo
@@ -51,6 +61,7 @@ python -m knime_scheduler --host 0.0.0.0 --port 8080 --data-dir D:\knime-schedul
   - `scheduler.py` - trigger, coda dei run, concorrenza, annullamento, pulizia storico
   - `crud.py` - operazioni sul dominio condivise da API e pagine
   - `api.py` - API REST JSON (`/api`)
+  - `auth.py` - login, sessioni, ruoli e gestione utenti
   - `webapp/` - build del frontend (generata, non versionata)
 - `frontend/` - interfaccia web Vue 3 + Vuetify
 - `tests/` - test (con un finto eseguibile KNIME)

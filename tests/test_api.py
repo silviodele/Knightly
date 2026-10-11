@@ -8,6 +8,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from knime_scheduler.app import create_app
+from knime_scheduler.auth import create_user
+from knime_scheduler.models import Role
 
 FAKE_KNIME = [sys.executable, str(Path(__file__).with_name("fake_knime.py"))]
 CORE = "org.knime.features.base.feature.group"
@@ -32,7 +34,10 @@ def client(tmp_path):
     knime.mkdir(parents=True)
     (knime / "org.knime.features.base_5.3.1.v2024").mkdir()
     app = create_app(data_dir=tmp_path / "data", launcher=FAKE_KNIME)
-    with TestClient(app) as c:
+    with app.state.session_factory() as s:
+        create_user(s, "admin", "password-admin", Role.ADMIN)
+    with TestClient(app, headers={"X-KS-CSRF": "1"}) as c:
+        assert c.post("/api/auth/login", json={"username": "admin", "password": "password-admin"}).status_code == 200
         c.knime_path = str(tmp_path / "knime")
         yield c
 

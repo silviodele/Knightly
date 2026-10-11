@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, type Schedule } from '@/api'
 import StatusChip from '@/components/StatusChip.vue'
+import { can } from '@/auth'
 import { confirm } from '@/confirm'
 import { describeTrigger, formatRelative, formatWhen } from '@/format'
 import { notify, notifyError } from '@/notify'
@@ -87,7 +88,7 @@ async function remove(s: Schedule) {
         style="max-width: 340px"
         clearable
       />
-      <v-btn color="primary" prepend-icon="mdi-plus" to="/schedules/new">Nuovo schedule</v-btn>
+      <v-btn v-if="can('operator')" color="primary" prepend-icon="mdi-plus" to="/schedules/new">Nuovo schedule</v-btn>
     </div>
 
     <v-card>
@@ -147,6 +148,7 @@ async function remove(s: Schedule) {
             hide-details
             density="compact"
             inset
+            :disabled="!can('operator')"
             @click.stop
             @update:model-value="(v) => toggle(item, !!v)"
           />
@@ -154,15 +156,19 @@ async function remove(s: Schedule) {
 
         <template #item.actions="{ item }">
           <div class="d-flex justify-end" @click.stop>
-            <v-btn icon="mdi-play" variant="text" color="primary" size="small" title="Avvia ora" @click="runNow(item)" />
+            <v-btn v-if="can('operator')" icon="mdi-play" variant="text" color="primary" size="small" title="Avvia ora" @click="runNow(item)" />
             <v-menu>
               <template #activator="{ props }">
                 <v-btn v-bind="props" icon="mdi-dots-vertical" variant="text" size="small" />
               </template>
               <v-list density="compact">
-                <v-list-item prepend-icon="mdi-pencil-outline" title="Modifica" :to="`/schedules/${item.id}`" />
+                <v-list-item
+                  :prepend-icon="can('operator') ? 'mdi-pencil-outline' : 'mdi-eye-outline'"
+                  :title="can('operator') ? 'Modifica' : 'Dettagli'"
+                  :to="`/schedules/${item.id}`"
+                />
                 <v-list-item prepend-icon="mdi-history" title="Storico run" :to="`/runs?schedule=${item.id}`" />
-                <v-list-item prepend-icon="mdi-delete-outline" title="Elimina" base-color="error" @click="remove(item)" />
+                <v-list-item v-if="can('operator')" prepend-icon="mdi-delete-outline" title="Elimina" base-color="error" @click="remove(item)" />
               </v-list>
             </v-menu>
           </div>
@@ -174,7 +180,7 @@ async function remove(s: Schedule) {
             title="Nessuno schedule"
             text="Crea uno schedule per eseguire un workflow in automatico."
           >
-            <template #actions>
+            <template v-if="can('operator')" #actions>
               <v-btn color="primary" to="/schedules/new">Nuovo schedule</v-btn>
             </template>
           </v-empty-state>

@@ -104,7 +104,7 @@ const headers = [
         <template #item.duration="{ item }">{{ runDuration(item, now) }}</template>
         <template #item.triggered_by="{ item }">
           <v-icon :icon="item.triggered_by === 'manual' ? 'mdi-hand-back-right-outline' : 'mdi-calendar-clock'" size="small" class="mr-1" />
-          {{ item.triggered_by === 'manual' ? 'Manuale' : 'Pianificato' }}
+          {{ item.triggered_by === 'manual' ? `Manuale${item.triggered_by_user ? ` · ${item.triggered_by_user}` : ''}` : 'Pianificato' }}
         </template>
         <template #no-data><div class="pa-6 text-subtle">Nessun run con questi filtri.</div></template>
       </v-data-table>

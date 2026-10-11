@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { api, type DependencyCheck } from '@/api'
+import { can } from '@/auth'
 import { notify, notifyError } from '@/notify'
 
 const props = defineProps<{ workflowId: number | null; environmentId: number | null }>()
@@ -104,7 +105,7 @@ defineExpose({ reload: load })
                 <v-icon start icon="mdi-playlist-check" /> Richiesta all’environment
               </v-chip>
               <v-btn
-                v-else
+                v-else-if="can('operator')"
                 size="small"
                 variant="tonal"
                 color="primary"

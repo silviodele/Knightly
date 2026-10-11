@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from . import crud
 from .app import get_or_404, get_service, get_session
+from .auth import api_access
 from .dependencies import installed_features
 from .models import Environment, Run, RunStatus, Schedule, TriggerType, Workflow
 from .scheduler import SchedulerService
@@ -31,7 +32,7 @@ from .schemas import (
     WorkflowOut,
 )
 
-router = APIRouter(prefix="/api", tags=["api"])
+router = APIRouter(prefix="/api", tags=["api"], dependencies=[Depends(api_access)])
 SessionDep = Annotated[Session, Depends(get_session)]
 ServiceDep = Annotated[SchedulerService, Depends(get_service)]
 
@@ -207,9 +208,9 @@ def schedule_dependencies(schedule_id: int, s: SessionDep):
 
 
 @router.post("/schedules/{schedule_id}/run", response_model=RunOut, status_code=202)
-def run_schedule(schedule_id: int, s: SessionDep, service: ServiceDep):
+def run_schedule(schedule_id: int, request: Request, s: SessionDep, service: ServiceDep):
     get_or_404(s, Schedule, schedule_id)
-    run_id = service.trigger_run(schedule_id, triggered_by="manual")
+    run_id = service.trigger_run(schedule_id, triggered_by="manual", user=request.state.user.username)
     if run_id is None:
         raise HTTPException(409, "C'e' gia' un run attivo e lo schedule e' impostato su 'salta'")
     s.expire_all()

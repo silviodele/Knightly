@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, type Schedule, type Workflow } from '@/api'
+import { can } from '@/auth'
 import { confirm } from '@/confirm'
 import { describeTrigger, formatDateTime } from '@/format'
 import { notify, notifyError } from '@/notify'
@@ -98,6 +99,7 @@ const headers = [
         </div>
       </div>
       <v-spacer />
+      <template v-if="can('operator')">
       <v-btn variant="tonal" prepend-icon="mdi-file-replace-outline" @click="fileInput?.click()">Carica nuova versione</v-btn>
       <input ref="fileInput" type="file" accept=".knwf" hidden @change="replaceFile(($event.target as HTMLInputElement).files)" />
       <v-btn
@@ -110,6 +112,7 @@ const headers = [
       >
         Elimina
       </v-btn>
+      </template>
     </div>
 
     <v-row>
@@ -120,7 +123,7 @@ const headers = [
             <v-card-subtitle>
               Rilevate dal file a ogni caricamento; quelle aggiunte a mano restano anche con una nuova versione.
             </v-card-subtitle>
-            <template #append>
+            <template v-if="can('operator')" #append>
               <v-btn color="primary" variant="tonal" size="small" prepend-icon="mdi-plus" @click="dialog = true">Aggiungi</v-btn>
             </template>
           </v-card-item>
@@ -139,7 +142,7 @@ const headers = [
               </v-chip>
             </template>
             <template #item.actions="{ item }">
-              <v-btn icon="mdi-close" variant="text" size="small" @click="removeDependency(item.id, item.name || item.feature_id)" />
+              <v-btn v-if="can('operator')" icon="mdi-close" variant="text" size="small" @click="removeDependency(item.id, item.name || item.feature_id)" />
             </template>
             <template #no-data><div class="pa-6 text-subtle">Nessuna dipendenza.</div></template>
           </v-data-table>

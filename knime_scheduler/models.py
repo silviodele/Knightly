@@ -1,4 +1,4 @@
-"""Modello dati: Environment, Workflow (+ dipendenze), Schedule, Run.
+"""Modello dati: Environment, Workflow (+ dipendenze), Schedule, Run, utenti e sessioni.
 
 Ispirato a NodePit Runner:
 - Environment = *dove* gira un workflow (installazione KNIME, estensioni, preferenze, JVM)
@@ -39,6 +39,18 @@ class RunStatus(StrEnum):
     FAILED = "failed"
     CANCELLED = "cancelled"
     TIMEOUT = "timeout"
+
+
+class Role(StrEnum):
+    """Ruoli in ordine crescente di permessi."""
+
+    VIEWER = "viewer"      # vede dashboard, run e log
+    OPERATOR = "operator"  # gestisce schedule, workflow, environment e avvia run
+    ADMIN = "admin"        # tutto, compresa la gestione utenti
+
+    @property
+    def level(self) -> int:
+        return list(Role).index(self)
 
 
 class DependencySource(StrEnum):
@@ -144,6 +156,7 @@ class Run(Base):
     schedule_id: Mapped[int] = mapped_column(ForeignKey("schedules.id"))
     status: Mapped[RunStatus] = mapped_column(String(20), default=RunStatus.QUEUED)
     triggered_by: Mapped[str] = mapped_column(String(20), default="schedule")  # schedule | manual
+    triggered_by_user: Mapped[str | None] = mapped_column(String(100))  # username per i run manuali
     queued_at: Mapped[datetime] = mapped_column(default=datetime.now)
     started_at: Mapped[datetime | None]
     finished_at: Mapped[datetime | None]
@@ -156,3 +169,32 @@ class Run(Base):
     @property
     def schedule_name(self) -> str:
         return self.schedule.name
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(100), unique=True)
+    full_name: Mapped[str] = mapped_column(String(200), default="")
+    password_hash: Mapped[str] = mapped_column(String(300))
+    role: Mapped[Role] = mapped_column(String(20), default=Role.VIEWER)
+    active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+    last_login_at: Mapped[datetime | None]
+
+    sessions: Mapped[list["UserSession"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+
+
+class UserSession(Base):
+    """Sessione di login: nel cookie va il token, nel DB solo il suo hash."""
+
+    __tablename__ = "user_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+    expires_at: Mapped[datetime]
+
+    user: Mapped[User] = relationship(back_populates="sessions")

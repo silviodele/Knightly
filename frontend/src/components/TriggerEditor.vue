@@ -5,6 +5,7 @@ import { describeTrigger, formatDateTime, formatRelative } from '@/format'
 
 const type = defineModel<TriggerType>('type', { required: true })
 const value = defineModel<string>('value', { required: true })
+defineProps<{ readonly?: boolean }>()
 
 const presets = [
   { title: 'Ogni giorno alle 6:00', type: 'cron' as const, value: '0 6 * * *' },
@@ -80,6 +81,7 @@ const description = computed(() =>
       divided
       density="comfortable"
       class="mb-4"
+      :disabled="readonly"
       @update:model-value="onTypeChange"
     >
       <v-btn v-for="t in types" :key="t.value" :value="t.value" :prepend-icon="t.icon">{{ t.title }}</v-btn>
@@ -97,7 +99,7 @@ const description = computed(() =>
           :error-messages="preview && !preview.valid ? preview.error ?? '' : ''"
         >
           <template #append-inner>
-            <v-menu>
+            <v-menu v-if="!readonly">
               <template #activator="{ props: menu }">
                 <v-btn v-bind="menu" size="small" variant="text" icon="mdi-lightning-bolt-outline" title="Modelli" />
               </template>

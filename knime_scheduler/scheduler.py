@@ -161,7 +161,9 @@ class SchedulerService:
 
     # --- run -----------------------------------------------------------------
 
-    def trigger_run(self, schedule_id: int, triggered_by: str = "schedule") -> int | None:
+    def trigger_run(
+        self, schedule_id: int, triggered_by: str = "schedule", user: str | None = None
+    ) -> int | None:
         """Accoda un run applicando la politica di concorrenza. None se saltato."""
         with self._lock:
             with self.session_factory() as s:
@@ -177,7 +179,7 @@ class SchedulerService:
                 if active and schedule.concurrency == Concurrency.REPLACE:
                     for run in active:
                         self._cancel(s, run)
-                run = Run(schedule_id=schedule_id, triggered_by=triggered_by)
+                run = Run(schedule_id=schedule_id, triggered_by=triggered_by, triggered_by_user=user)
                 s.add(run)
                 s.commit()
                 run_id = run.id

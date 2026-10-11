@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, type Workflow } from '@/api'
+import { can } from '@/auth'
 import { formatDateTime } from '@/format'
 import { notify, notifyError } from '@/notify'
 
@@ -74,6 +75,7 @@ const headers = [
     </div>
 
     <v-card
+      v-if="can('operator')"
       class="dropzone mb-6"
       :class="{ dragging }"
       @dragover.prevent="dragging = true"

@@ -4,6 +4,25 @@ export type RunStatus = 'queued' | 'running' | 'success' | 'failed' | 'cancelled
 export type TriggerType = 'cron' | 'interval' | 'date'
 export type Concurrency = 'skip' | 'queue' | 'replace' | 'allow'
 export type VariableType = 'String' | 'int' | 'double'
+export type Role = 'viewer' | 'operator' | 'admin'
+
+export interface User {
+  id: number
+  username: string
+  full_name: string
+  role: Role
+  active: boolean
+  created_at: string
+  last_login_at: string | null
+}
+
+export interface UserIn {
+  username: string
+  full_name: string
+  role: Role
+  active: boolean
+  password?: string | null
+}
 
 export interface Environment {
   id: number
@@ -57,6 +76,7 @@ export interface Run {
   schedule_name: string
   status: RunStatus
   triggered_by: 'schedule' | 'manual'
+  triggered_by_user: string | null
   queued_at: string
   started_at: string | null
   finished_at: string | null
@@ -143,8 +163,15 @@ function errorMessage(body: unknown, fallback: string): string {
   return fallback
 }
 
+// Chiamata quando una richiesta riceve 401 (sessione scaduta): impostata dal router
+let onUnauthorized: (() => void) | null = null
+export function setUnauthorizedHandler(handler: () => void) {
+  onUnauthorized = handler
+}
+
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
-  const init: RequestInit = { method, headers: {} }
+  // L'header X-KS-CSRF e' richiesto dal backend per le modifiche: un sito esterno non puo' inviarlo
+  const init: RequestInit = { method, headers: { 'X-KS-CSRF': '1' }, credentials: 'same-origin' }
   if (body instanceof FormData) {
     init.body = body
   } else if (body !== undefined) {
@@ -153,6 +180,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   }
   const response = await fetch(`/api${url}`, init)
   if (!response.ok) {
+    if (response.status === 401 && !url.startsWith('/auth/')) onUnauthorized?.()
     let parsed: unknown = null
     try {
       parsed = await response.json()
@@ -172,6 +200,18 @@ const qs = (params: Record<string, string | number | undefined | null>) => {
 }
 
 export const api = {
+  authStatus: () => request<{ needs_setup: boolean; user: User | null }>('GET', '/auth/status'),
+  login: (username: string, password: string) => request<User>('POST', '/auth/login', { username, password }),
+  setup: (data: { username: string; full_name: string; password: string }) => request<User>('POST', '/auth/setup', data),
+  logout: () => request<void>('POST', '/auth/logout'),
+  changePassword: (current_password: string, new_password: string) =>
+    request<void>('POST', '/auth/password', { current_password, new_password }),
+
+  users: () => request<User[]>('GET', '/users'),
+  createUser: (data: UserIn) => request<User>('POST', '/users', data),
+  updateUser: (id: number, data: UserIn) => request<User>('PUT', `/users/${id}`, data),
+  deleteUser: (id: number) => request<void>('DELETE', `/users/${id}`),
+
   stats: () => request<Stats>('GET', '/stats'),
 
   environments: () => request<Environment[]>('GET', '/environments'),

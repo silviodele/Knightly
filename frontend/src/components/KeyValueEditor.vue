@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 
 // Editor di coppie chiave/valore (preferenze, variabili d'ambiente).
 const model = defineModel<Record<string, string>>({ required: true })
-defineProps<{ keyLabel?: string; valueLabel?: string; keyPlaceholder?: string }>()
+defineProps<{ keyLabel?: string; valueLabel?: string; keyPlaceholder?: string; readonly?: boolean }>()
 
 const rows = ref<{ key: string; value: string }[]>([])
 
@@ -32,8 +32,9 @@ watch(
     <div v-for="(row, i) in rows" :key="i" class="d-flex ga-2 align-start">
       <v-text-field v-model="row.key" :label="keyLabel ?? 'Chiave'" :placeholder="keyPlaceholder" class="mono" />
       <v-text-field v-model="row.value" :label="valueLabel ?? 'Valore'" class="mono" />
-      <v-btn icon="mdi-close" variant="text" size="small" class="mt-2" @click="rows.splice(i, 1)" />
+      <v-btn v-if="!readonly" icon="mdi-close" variant="text" size="small" class="mt-2" @click="rows.splice(i, 1)" />
     </div>
-    <v-btn variant="tonal" size="small" prepend-icon="mdi-plus" @click="rows.push({ key: '', value: '' })">Aggiungi</v-btn>
+    <v-btn v-if="!readonly" variant="tonal" size="small" prepend-icon="mdi-plus" @click="rows.push({ key: '', value: '' })">Aggiungi</v-btn>
+    <div v-else-if="!rows.length" class="text-caption text-subtle">Nessuna</div>
   </div>
 </template>

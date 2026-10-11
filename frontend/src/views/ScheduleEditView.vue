@@ -5,6 +5,7 @@ import { api, type Environment, type Run, type Schedule, type ScheduleIn, type W
 import DependencyPanel from '@/components/DependencyPanel.vue'
 import StatusChip from '@/components/StatusChip.vue'
 import TriggerEditor from '@/components/TriggerEditor.vue'
+import { can } from '@/auth'
 import { confirm } from '@/confirm'
 import { CONCURRENCY, describeTrigger, formatRelative, formatWhen, isActive, runDuration } from '@/format'
 import { notify, notifyError } from '@/notify'
@@ -165,7 +166,7 @@ const selectedEnvironment = computed(() => environments.value.find((e) => e.id =
           </div>
         </div>
         <v-spacer />
-        <template v-if="!isNew">
+        <template v-if="!isNew && can('operator')">
           <v-btn color="primary" variant="tonal" prepend-icon="mdi-play" @click="runNow">Avvia ora</v-btn>
           <v-btn variant="text" color="error" prepend-icon="mdi-delete-outline" @click="remove">Elimina</v-btn>
         </template>
@@ -187,7 +188,10 @@ const selectedEnvironment = computed(() => environments.value.find((e) => e.id =
 
       <v-window v-model="tab">
         <v-window-item value="config">
-          <v-form ref="formRef" @submit.prevent="save">
+          <v-alert v-if="!can('operator')" type="info" variant="tonal" density="compact" class="mb-4" icon="mdi-eye-outline">
+        Sola lettura: il tuo ruolo permette di consultare ma non di modificare.
+      </v-alert>
+      <v-form ref="formRef" :readonly="!can('operator')" @submit.prevent="save">
             <v-row>
               <v-col cols="12" lg="7">
                 <v-card class="mb-4">
@@ -249,9 +253,9 @@ const selectedEnvironment = computed(() => environments.value.find((e) => e.id =
                     <v-card-title class="section-title">Pianificazione</v-card-title>
                   </v-card-item>
                   <v-card-text>
-                    <TriggerEditor v-model:type="form.trigger_type" v-model:value="form.trigger_value" />
+                    <TriggerEditor v-model:type="form.trigger_type" v-model:value="form.trigger_value" :readonly="!can('operator')" />
                     <div class="text-body-2 font-weight-medium mt-2 mb-2">Se scatta mentre un run è ancora attivo</div>
-                    <v-item-group v-model="form.concurrency" mandatory>
+                    <v-item-group v-model="form.concurrency" mandatory :disabled="!can('operator')">
                       <v-row dense>
                         <v-col v-for="(c, key) in CONCURRENCY" :key="key" cols="12" sm="6">
                           <v-item v-slot="{ isSelected, toggle }" :value="key">
@@ -284,9 +288,10 @@ const selectedEnvironment = computed(() => environments.value.find((e) => e.id =
                       <v-text-field v-model="v.name" label="Nome" class="mono" :rules="[required]" />
                       <v-select v-model="v.type" :items="['String', 'int', 'double']" label="Tipo" style="max-width: 130px" />
                       <v-text-field v-model="v.value" label="Valore" class="mono" />
-                      <v-btn icon="mdi-close" variant="text" size="small" class="mt-2" @click="form.variables.splice(i, 1)" />
+                      <v-btn v-if="can('operator')" icon="mdi-close" variant="text" size="small" class="mt-2" @click="form.variables.splice(i, 1)" />
                     </div>
                     <v-btn
+                      v-if="can('operator')"
                       variant="tonal"
                       size="small"
                       prepend-icon="mdi-plus"
@@ -317,9 +322,10 @@ const selectedEnvironment = computed(() => environments.value.find((e) => e.id =
                         :placeholder="isNew ? '' : '••••••• (invariata)'"
                         persistent-placeholder
                       />
-                      <v-btn icon="mdi-close" variant="text" size="small" class="mt-2" @click="form.credentials.splice(i, 1)" />
+                      <v-btn v-if="can('operator')" icon="mdi-close" variant="text" size="small" class="mt-2" @click="form.credentials.splice(i, 1)" />
                     </div>
                     <v-btn
+                      v-if="can('operator')"
                       variant="tonal"
                       size="small"
                       prepend-icon="mdi-plus"
@@ -388,7 +394,7 @@ const selectedEnvironment = computed(() => environments.value.find((e) => e.id =
                     <v-card-subtitle>Quando avvisare (invio in arrivo)</v-card-subtitle>
                   </v-card-item>
                   <v-card-text>
-                    <v-chip-group v-model="form.notify_on" multiple column selected-class="text-primary">
+                    <v-chip-group v-model="form.notify_on" multiple column selected-class="text-primary" :disabled="!can('operator')">
                       <v-chip value="failed" filter variant="outlined">Fallito</v-chip>
                       <v-chip value="success" filter variant="outlined">Riuscito</v-chip>
                       <v-chip value="cancelled" filter variant="outlined">Annullato</v-chip>
@@ -398,7 +404,7 @@ const selectedEnvironment = computed(() => environments.value.find((e) => e.id =
               </v-col>
             </v-row>
 
-            <div class="sticky-actions d-flex align-center ga-3 py-3 px-1 mt-2">
+            <div v-if="can('operator')" class="sticky-actions d-flex align-center ga-3 py-3 px-1 mt-2">
               <span class="text-caption text-subtle">
                 {{ isNew ? 'Lo schedule partirà automaticamente secondo la pianificazione.' : '' }}
               </span>
@@ -425,7 +431,7 @@ const selectedEnvironment = computed(() => environments.value.find((e) => e.id =
               <template #item.duration="{ item }">{{ runDuration(item, now) }}</template>
               <template #item.triggered_by="{ item }">
                 <v-icon :icon="item.triggered_by === 'manual' ? 'mdi-hand-back-right-outline' : 'mdi-calendar-clock'" size="small" class="mr-1" />
-                {{ item.triggered_by === 'manual' ? 'Manuale' : 'Pianificato' }}
+                {{ item.triggered_by === 'manual' ? `Manuale${item.triggered_by_user ? ` · ${item.triggered_by_user}` : ''}` : 'Pianificato' }}
               </template>
               <template #item.error="{ item }">
                 <span class="text-caption text-error">{{ item.error }}</span>

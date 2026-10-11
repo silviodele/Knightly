@@ -64,6 +64,22 @@ Layout dashboard con menu laterale, tema chiaro/scuro.
 Endpoint pensati per la UI: `/api/stats`, `/api/triggers/preview`, `/api/dependency-check`,
 `/api/environments/{id}/extensions`, `PATCH /api/schedules/{id}/active`, `/api/runs/{id}/log/stream`.
 
+## Autenticazione (`auth.py`)
+- Utenti locali nel DB, password con hash **scrypt** (salt casuale), minimo 8 caratteri.
+- Sessioni lato server: token casuale nel cookie `ks_session` (HttpOnly, SameSite=Strict, Secure se HTTPS),
+  nel DB solo lo SHA-256. Scadenza dopo 12 ore di inattività; logout, cambio password e disattivazione
+  dell'utente chiudono le sessioni.
+- CSRF: le richieste non-GET devono avere l'header `X-KS-CSRF: 1` (un sito esterno non può inviarlo).
+- Tentativi di login: dopo 5 errori per utente o IP blocco di 60 secondi; stesso messaggio per utente
+  inesistente e password errata.
+- Ruoli viewer < operator < admin: le API di dominio richiedono viewer per le letture e operator per le
+  modifiche; `/api/users` solo admin. Deve restare sempre almeno un admin attivo.
+- Primo avvio: se non ci sono utenti l'interfaccia mostra la creazione dell'admin (`/api/auth/setup`,
+  disponibile solo con zero utenti). CLI: `create-user`, `reset-password`.
+- I run manuali registrano l'utente (`triggered_by_user`).
+- Migrazione minima in `db.py`: le colonne nullable nuove vengono aggiunte alle tabelle esistenti
+  (in attesa di Alembic).
+
 ## Isolamento
 Ogni Environment e' una installazione KNIME locale (cartella su disco). L'esecuzione e' dietro
 `RunSpec`/`run_workflow`, cosi' un runner Docker si potra' aggiungere in seguito.

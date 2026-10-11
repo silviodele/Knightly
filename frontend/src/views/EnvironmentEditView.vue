@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, type EnvironmentIn } from '@/api'
 import KeyValueEditor from '@/components/KeyValueEditor.vue'
+import { can } from '@/auth'
 import { confirm } from '@/confirm'
 import { notify, notifyError } from '@/notify'
 
@@ -96,7 +97,7 @@ const requestedMissing = computed(() => form.value.extensions.filter((f) => !(f 
 <template>
   <div>
     <v-skeleton-loader v-if="loading" type="heading, article" />
-    <v-form v-else ref="formRef" @submit.prevent="save">
+    <v-form v-else ref="formRef" :readonly="!can('operator')" @submit.prevent="save">
       <div class="d-flex align-center flex-wrap ga-3 mb-6">
         <v-btn icon="mdi-arrow-left" variant="text" to="/environments" />
         <div>
@@ -104,8 +105,12 @@ const requestedMissing = computed(() => form.value.extensions.filter((f) => !(f 
           <div class="text-subtle">Dove vengono eseguiti i workflow</div>
         </div>
         <v-spacer />
-        <v-btn v-if="!isNew" variant="text" color="error" prepend-icon="mdi-delete-outline" @click="remove">Elimina</v-btn>
+        <v-btn v-if="!isNew && can('operator')" variant="text" color="error" prepend-icon="mdi-delete-outline" @click="remove">Elimina</v-btn>
       </div>
+
+      <v-alert v-if="!can('operator')" type="info" variant="tonal" density="compact" class="mb-4" icon="mdi-eye-outline">
+        Sola lettura: il tuo ruolo permette di consultare ma non di modificare.
+      </v-alert>
 
       <v-row>
         <v-col cols="12" lg="7">
@@ -177,7 +182,7 @@ const requestedMissing = computed(() => form.value.extensions.filter((f) => !(f 
                 prepend-inner-icon="mdi-file-cog-outline"
               />
               <div class="text-body-2 font-weight-medium mt-5 mb-2">Preferenze aggiuntive (sovrascrivono il file)</div>
-              <KeyValueEditor v-model="form.preference_entries" key-label="Chiave" key-placeholder="/instance/org.knime…" />
+              <KeyValueEditor v-model="form.preference_entries" key-label="Chiave" key-placeholder="/instance/org.knime…" :readonly="!can('operator')" />
             </v-card-text>
           </v-card>
         </v-col>
@@ -199,7 +204,7 @@ const requestedMissing = computed(() => form.value.extensions.filter((f) => !(f 
                 persistent-hint
               />
               <div class="text-body-2 font-weight-medium mt-5 mb-2">Variabili d’ambiente</div>
-              <KeyValueEditor v-model="form.env_vars" key-label="Nome" key-placeholder="HTTP_PROXY" />
+              <KeyValueEditor v-model="form.env_vars" key-label="Nome" key-placeholder="HTTP_PROXY" :readonly="!can('operator')" />
             </v-card-text>
           </v-card>
 
@@ -243,7 +248,7 @@ const requestedMissing = computed(() => form.value.extensions.filter((f) => !(f 
         </v-col>
       </v-row>
 
-      <div class="sticky-actions d-flex align-center ga-3 py-3 px-1 mt-2">
+      <div v-if="can('operator')" class="sticky-actions d-flex align-center ga-3 py-3 px-1 mt-2">
         <v-spacer />
         <v-btn variant="text" to="/environments">Annulla</v-btn>
         <v-btn type="submit" color="primary" :loading="saving" prepend-icon="mdi-content-save-outline">

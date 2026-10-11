@@ -106,6 +106,7 @@ class RunOut(BaseModel):
     schedule_name: str = ""
     status: str
     triggered_by: str
+    triggered_by_user: str | None = None
     queued_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
