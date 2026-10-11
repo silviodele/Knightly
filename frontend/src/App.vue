@@ -74,7 +74,7 @@ const isSelected = (to: string) => (to === '/' ? route.path === '/' : route.path
         <div class="d-flex align-center px-3 py-4 ga-3">
           <img src="/favicon.svg" width="32" height="32" alt="" />
           <div v-if="!rail || mobile" class="text-truncate">
-            <div class="font-weight-bold">knime-scheduler</div>
+            <div class="font-weight-bold">Knightly</div>
             <div class="text-caption text-subtle">Workflow automation</div>
           </div>
         </div>

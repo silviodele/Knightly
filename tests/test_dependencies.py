@@ -1,6 +1,6 @@
 import zipfile
 
-from knime_scheduler.dependencies import (
+from knightly.dependencies import (
     Dependency,
     DependencyStatus,
     check_dependencies,

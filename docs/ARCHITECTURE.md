@@ -10,7 +10,7 @@ Modello concettuale ripreso da NodePit Runner
 - **Dependencies** (`dependencies.py`): legge dal .knwf le estensioni usate e le confronta con l'environment
 - **Storage** (SQLAlchemy + SQLite): environment, workflow, dipendenze, schedule, run
 - **API** (FastAPI): `/api/...` JSON, unico contratto con il frontend; log live via Server-Sent Events
-- **UI** (Vue 3 + Vuetify, in `frontend/`): single page app compilata in `knime_scheduler/webapp/` e servita da FastAPI
+- **UI** (Vue 3 + Vuetify, in `frontend/`): single page app compilata in `knightly/webapp/` e servita da FastAPI
 - **Notifier**: email/webhook su fallimento
 
 ## Modello dati
@@ -66,10 +66,10 @@ Endpoint pensati per la UI: `/api/stats`, `/api/triggers/preview`, `/api/depende
 
 ## Autenticazione (`auth.py`)
 - Utenti locali nel DB, password con hash **scrypt** (salt casuale), minimo 8 caratteri.
-- Sessioni lato server: token casuale nel cookie `ks_session` (HttpOnly, SameSite=Strict, Secure se HTTPS),
+- Sessioni lato server: token casuale nel cookie `knightly_session` (HttpOnly, SameSite=Strict, Secure se HTTPS),
   nel DB solo lo SHA-256. Scadenza dopo 12 ore di inattività; logout, cambio password e disattivazione
   dell'utente chiudono le sessioni.
-- CSRF: le richieste non-GET devono avere l'header `X-KS-CSRF: 1` (un sito esterno non può inviarlo).
+- CSRF: le richieste non-GET devono avere l'header `X-Knightly-CSRF: 1` (un sito esterno non può inviarlo).
 - Tentativi di login: dopo 5 errori per utente o IP blocco di 60 secondi; stesso messaggio per utente
   inesistente e password errata.
 - Ruoli viewer < operator < admin: le API di dominio richiedono viewer per le letture e operator per le

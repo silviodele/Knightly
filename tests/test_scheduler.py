@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
-from knime_scheduler.models import (
+from knightly.models import (
     Base,
     Concurrency,
     Environment,
@@ -17,7 +17,7 @@ from knime_scheduler.models import (
     Workflow,
     WorkflowDependency,
 )
-from knime_scheduler.scheduler import SchedulerService, make_trigger
+from knightly.scheduler import SchedulerService, make_trigger
 
 FAKE_KNIME = [sys.executable, str(Path(__file__).with_name("fake_knime.py"))]
 FINAL = {RunStatus.SUCCESS, RunStatus.FAILED, RunStatus.CANCELLED, RunStatus.TIMEOUT}

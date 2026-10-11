@@ -24,9 +24,9 @@ def create_app(
     max_workers: int = 4,
     launcher: list[str] | None = None,
 ) -> FastAPI:
-    data_dir = Path(data_dir or os.environ.get("KNIME_SCHEDULER_DATA", "data"))
+    data_dir = Path(data_dir or os.environ.get("KNIGHTLY_DATA", "data"))
     database_url = database_url or os.environ.get(
-        "KNIME_SCHEDULER_DB", f"sqlite:///{(data_dir / 'knime_scheduler.db').as_posix()}"
+        "KNIGHTLY_DB", f"sqlite:///{(data_dir / 'knightly.db').as_posix()}"
     )
     session_factory = make_session_factory(database_url)
     service = SchedulerService(
@@ -40,7 +40,7 @@ def create_app(
         yield
         service.shutdown(cancel_running=True)
 
-    app = FastAPI(title="knime-scheduler", lifespan=lifespan)
+    app = FastAPI(title="Knightly", lifespan=lifespan)
     app.state.session_factory = session_factory
     app.state.service = service
     app.state.workflows_dir = data_dir / "workflows"
@@ -71,7 +71,7 @@ def _mount_webapp(app: FastAPI) -> None:
         if index.is_file():
             return FileResponse(index)
         return HTMLResponse(
-            "<h1>knime-scheduler</h1><p>Interfaccia non compilata: esegui <code>npm install</code> e "
+            "<h1>Knightly</h1><p>Interfaccia non compilata: esegui <code>npm install</code> e "
             "<code>npm run build</code> nella cartella <code>frontend/</code>. "
             "Le API sono documentate su <a href='/docs'>/docs</a>.</p>",
             status_code=503,

@@ -8,12 +8,12 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from knime_scheduler.app import create_app
-from knime_scheduler.auth import LoginThrottle, create_user, hash_password, verify_password
-from knime_scheduler.db import make_session_factory
-from knime_scheduler.models import Role
+from knightly.app import create_app
+from knightly.auth import LoginThrottle, create_user, hash_password, verify_password
+from knightly.db import make_session_factory
+from knightly.models import Role
 
-CSRF = {"X-KS-CSRF": "1"}
+CSRF = {"X-Knightly-CSRF": "1"}
 
 
 @pytest.fixture
@@ -77,9 +77,9 @@ def test_login_errors_and_logout(app):
 
     client = login(app, "ADMIN".lower())
     assert client.get("/api/auth/me").json()["username"] == "admin"
-    cookie = client.cookies.get("ks_session")
+    cookie = client.cookies.get("knightly_session")
     assert client.post("/api/auth/logout").status_code == 204
-    reuse = TestClient(app, headers=CSRF, cookies={"ks_session": cookie})
+    reuse = TestClient(app, headers=CSRF, cookies={"knightly_session": cookie})
     assert reuse.get("/api/schedules").status_code == 401  # la sessione e' stata cancellata
 
 
@@ -92,7 +92,7 @@ def test_username_is_case_insensitive(app):
 def test_csrf_header_required_for_changes(app):
     add_users(app)
     client = login(app, "operator")
-    no_csrf = TestClient(app, cookies={"ks_session": client.cookies.get("ks_session")})
+    no_csrf = TestClient(app, cookies={"knightly_session": client.cookies.get("knightly_session")})
     assert no_csrf.get("/api/environments").status_code == 200
     r = no_csrf.post("/api/environments", json={"name": "x", "knime_path": "x"})
     assert r.status_code == 403 and "CSRF" in r.json()["detail"]

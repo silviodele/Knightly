@@ -48,7 +48,7 @@ async function submit() {
       <div class="d-flex align-center ga-3 mb-8 justify-center">
         <img src="/favicon.svg" width="44" height="44" alt="" />
         <div>
-          <div class="text-h6 font-weight-bold">knime-scheduler</div>
+          <div class="text-h6 font-weight-bold">Knightly</div>
           <div class="text-caption text-subtle">Workflow automation per KNIME</div>
         </div>
       </div>

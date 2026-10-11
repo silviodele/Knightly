@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from knime_scheduler.executor import RunSpec, build_command, run_workflow
+from knightly.executor import RunSpec, build_command, run_workflow
 
 FAKE_KNIME = [sys.executable, str(Path(__file__).with_name("fake_knime.py"))]
 

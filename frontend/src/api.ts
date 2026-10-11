@@ -170,8 +170,8 @@ export function setUnauthorizedHandler(handler: () => void) {
 }
 
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
-  // L'header X-KS-CSRF e' richiesto dal backend per le modifiche: un sito esterno non puo' inviarlo
-  const init: RequestInit = { method, headers: { 'X-KS-CSRF': '1' }, credentials: 'same-origin' }
+  // L'header X-Knightly-CSRF e' richiesto dal backend per le modifiche: un sito esterno non puo' inviarlo
+  const init: RequestInit = { method, headers: { 'X-Knightly-CSRF': '1' }, credentials: 'same-origin' }
   if (body instanceof FormData) {
     init.body = body
   } else if (body !== undefined) {

@@ -1,12 +1,16 @@
 [build-system]
-requires = ["setuptools>=69"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "knime-scheduler"
+name = "knightly"
 version = "0.1.0"
 description = "Scheduler open source per workflow KNIME, ispirato a NodePit Runner."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Antonio Silvio De Letteriis" }]
+keywords = ["knime", "scheduler", "workflow", "automation", "batch"]
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.110",
@@ -16,17 +20,21 @@ dependencies = [
     "apscheduler>=3.10,<4",
 ]
 
+[project.urls]
+Homepage = "https://github.com/silviodele/knightly"
+Issues = "https://github.com/silviodele/knightly/issues"
+
 [project.optional-dependencies]
 dev = ["pytest>=8", "httpx2"]
 
 [project.scripts]
-knime-scheduler = "knime_scheduler.__main__:main"
+knightly = "knightly.__main__:main"
 
 [tool.setuptools.packages.find]
-include = ["knime_scheduler*"]
+include = ["knightly*"]
 
 [tool.setuptools.package-data]
-knime_scheduler = ["webapp/**/*"]
+knightly = ["webapp/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

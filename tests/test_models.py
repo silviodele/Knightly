@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from knime_scheduler.models import Base, Environment, Run, Schedule, Workflow, WorkflowDependency
+from knightly.models import Base, Environment, Run, Schedule, Workflow, WorkflowDependency
 
 
 def test_create_full_graph():

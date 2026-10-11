@@ -3,7 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 import vuetify from 'vite-plugin-vuetify'
 
-// In sviluppo le chiamate /api vanno al backend FastAPI (python -m knime_scheduler).
+// In sviluppo le chiamate /api vanno al backend FastAPI (python -m knightly).
 // La build finisce dentro il pacchetto Python, servita da FastAPI.
 export default defineConfig({
   plugins: [vue(), vuetify({ autoImport: true })],
@@ -19,7 +19,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../knime_scheduler/webapp',
+    outDir: '../knightly/webapp',
     emptyOutDir: true,
     chunkSizeWarningLimit: 1500,
   },

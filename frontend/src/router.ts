@@ -39,7 +39,7 @@ router.beforeEach(async (to) => {
 })
 
 router.afterEach((to) => {
-  document.title = `${to.meta.title ?? 'knime-scheduler'} · knime-scheduler`
+  document.title = `${to.meta.title ?? 'Knightly'} · Knightly`
 })
 
 // Sessione scaduta durante l'uso: torna al login mantenendo la pagina corrente

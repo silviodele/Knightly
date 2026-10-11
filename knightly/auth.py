@@ -2,7 +2,7 @@
 
 - Password: hash scrypt (libreria standard) con salt casuale.
 - Sessione: token casuale nel cookie HttpOnly/SameSite=Strict, nel DB solo lo SHA-256.
-- CSRF: le richieste che modificano dati devono avere l'header X-KS-CSRF, che un sito
+- CSRF: le richieste che modificano dati devono avere l'header X-Knightly-CSRF, che un sito
   esterno non puo' inviare senza preflight CORS (che non abilitiamo).
 - Ruoli: viewer < operator < admin. Nelle API normali GET basta viewer, il resto operator.
 """
@@ -24,8 +24,8 @@ from sqlalchemy.orm import Session
 from .app import get_or_404, get_session
 from .models import Role, User, UserSession
 
-COOKIE_NAME = "ks_session"
-CSRF_HEADER = "X-KS-CSRF"
+COOKIE_NAME = "knightly_session"
+CSRF_HEADER = "X-Knightly-CSRF"
 SESSION_IDLE = timedelta(hours=12)
 MIN_PASSWORD_LENGTH = 8
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}

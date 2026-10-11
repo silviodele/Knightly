@@ -1,8 +1,8 @@
 """Riga di comando.
 
-    python -m knime_scheduler [serve] [--host 127.0.0.1] [--port 8000]
-    python -m knime_scheduler create-user USERNAME [--role admin|operator|viewer]
-    python -m knime_scheduler reset-password USERNAME
+    python -m knightly [serve] [--host 127.0.0.1] [--port 8000]
+    python -m knightly create-user USERNAME [--role admin|operator|viewer]
+    python -m knightly reset-password USERNAME
 """
 
 import argparse
@@ -16,13 +16,13 @@ from .models import Role
 
 
 def _data_dir(args) -> Path:
-    return Path(args.data_dir or os.environ.get("KNIME_SCHEDULER_DATA", "data"))
+    return Path(args.data_dir or os.environ.get("KNIGHTLY_DATA", "data"))
 
 
 def _session_factory(args):
     from .db import make_session_factory
 
-    url = os.environ.get("KNIME_SCHEDULER_DB", f"sqlite:///{(_data_dir(args) / 'knime_scheduler.db').as_posix()}")
+    url = os.environ.get("KNIGHTLY_DB", f"sqlite:///{(_data_dir(args) / 'knightly.db').as_posix()}")
     return make_session_factory(url)
 
 
@@ -74,7 +74,7 @@ def reset_password_cmd(args) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="knime-scheduler", description="Scheduler per workflow KNIME")
+    parser = argparse.ArgumentParser(prog="knightly", description="Scheduler per workflow KNIME")
     parser.add_argument("--data-dir", default=None, help="cartella per database, workflow e log (default: ./data)")
     commands = parser.add_subparsers(dest="command")
 

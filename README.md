@@ -1,6 +1,11 @@
-# knime-scheduler
+# Knightly
 
-Scheduler open source per workflow KNIME, ispirato a [NodePit Runner](https://nodepit.com/product/runner).
+**Scheduler open source per workflow [KNIME](https://www.knime.com/)**: pianifica, esegue e monitora i
+workflow in batch su installazioni KNIME locali, con dashboard web, log in tempo reale e gestione delle
+dipendenze (estensioni KNIME). Ispirato a [NodePit Runner](https://nodepit.com/product/runner).
+
+> Knightly è un progetto indipendente: non è affiliato, sponsorizzato né approvato da KNIME AG.
+> KNIME® è un marchio registrato di KNIME AG.
 
 ## Obiettivi
 - Gestire gli **Environment**: installazioni KNIME locali con estensioni, preferenze (.epf) e argomenti JVM
@@ -24,24 +29,24 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -e ".[dev]"
 pytest
-python -m knime_scheduler          # API su http://127.0.0.1:8000
+python -m knightly          # API su http://127.0.0.1:8000
 ```
 Frontend (serve Node.js solo in sviluppo):
 ```
 cd frontend
 npm install
 npm run dev                        # http://localhost:5173, le chiamate /api vanno al backend
-npm run build                      # compila in knime_scheduler/webapp/, servita da FastAPI
+npm run build                      # compila in knightly/webapp/, servita da FastAPI
 ```
 
 ## Avvio
 ```
-python -m knime_scheduler            # http://127.0.0.1:8000
-python -m knime_scheduler --host 0.0.0.0 --port 8080 --data-dir D:\knime-scheduler-data
+python -m knightly            # http://127.0.0.1:8000
+python -m knightly --host 0.0.0.0 --port 8080 --data-dir D:\knightly-data
 ```
 - Al primo accesso l'interfaccia chiede di creare l'amministratore. In alternativa:
-  `python -m knime_scheduler create-user admin --role admin` (chiede la password).
-- Password dimenticata: `python -m knime_scheduler reset-password <utente>`.
+  `python -m knightly create-user admin --role admin` (chiede la password).
+- Password dimenticata: `python -m knightly reset-password <utente>`.
 - Interfaccia web: `/` (Dashboard, Schedule, Run, Workflow, Environment, Utenti) — richiede `npm run build`
 - API REST: `/api/...`, documentazione interattiva su `/docs` (serve il login)
 - Dati (database SQLite, workflow caricati, log dei run) in `./data` o nella cartella `--data-dir`
@@ -54,7 +59,7 @@ python -m knime_scheduler --host 0.0.0.0 --port 8080 --data-dir D:\knime-schedul
 | Amministratore | anche gestire gli utenti |
 
 ## Struttura
-- `knime_scheduler/` - codice applicativo
+- `knightly/` - codice applicativo
   - `models.py` - Environment, Workflow, WorkflowDependency, Schedule, Run
   - `dependencies.py` - lettura dipendenze dal .knwf e confronto con l'environment
   - `executor.py` - esecuzione di KNIME in batch mode
@@ -67,3 +72,6 @@ python -m knime_scheduler --host 0.0.0.0 --port 8080 --data-dir D:\knime-schedul
 - `tests/` - test (con un finto eseguibile KNIME)
 - `docs/` - architettura e note di progetto
 - `workflows/` - workflow KNIME di esempio (.knwf)
+
+## Licenza
+[MIT](LICENSE) © 2026 Antonio Silvio De Letteriis
