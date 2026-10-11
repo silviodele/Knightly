@@ -9,7 +9,7 @@ description = "Scheduler open source per workflow KNIME, ispirato a NodePit Runn
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-authors = [{ name = "Antonio Silvio De Letteriis" }]
+authors = [{ name = "Antonio Silvio de Letteriis" }]
 keywords = ["knime", "scheduler", "workflow", "automation", "batch"]
 requires-python = ">=3.11"
 dependencies = [

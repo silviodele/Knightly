@@ -74,4 +74,4 @@ python -m knightly --host 0.0.0.0 --port 8080 --data-dir D:\knightly-data
 - `workflows/` - workflow KNIME di esempio (.knwf)
 
 ## Licenza
-[MIT](LICENSE) © 2026 Antonio Silvio De Letteriis
+[MIT](LICENSE) © 2026 Antonio Silvio de Letteriis
