@@ -33,6 +33,20 @@ Environment ──< Schedule >── Workflow ──< WorkflowDependency
 5. (Da fare) installazione automatica delle mancanti con il p2 director:
    `knime -application org.eclipse.equinox.p2.director -nosplash -r <update site> -i <feature.group>`
 
+## Scheduler (`scheduler.py`)
+- Gli Schedule stanno nel nostro DB; all'avvio vengono caricati in APScheduler (job store in memoria).
+  Dopo ogni modifica di uno Schedule va chiamato `sync_schedule()`. I run persi a servizio spento non vengono recuperati.
+- `trigger_run()` crea un Run in coda applicando la concorrenza:
+  - `skip`: non crea il run se ce n'e' gia' uno attivo
+  - `queue`: un run alla volta, gli altri aspettano in ordine
+  - `replace`: annulla quello attivo e parte il nuovo
+  - `allow`: tutti in parallelo (limite globale `max_workers`)
+- Prima del lancio verifica le dipendenze: se manca un'estensione il run fallisce subito con un messaggio chiaro.
+- Exit code KNIME tradotti in messaggi; stati finali: success / failed / cancelled / timeout.
+- All'avvio i run rimasti `running` vengono chiusi come falliti, quelli `queued` ripartono.
+- Ogni notte alle 3 elimina run e log piu' vecchi della retention dello schedule.
+- `on_run_finished` permette di agganciare notifiche e aggiornamenti della UI.
+
 ## Isolamento
 Ogni Environment e' una installazione KNIME locale (cartella su disco). L'esecuzione e' dietro
 `RunSpec`/`run_workflow`, cosi' un runner Docker si potra' aggiungere in seguito.

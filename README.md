@@ -28,6 +28,7 @@ pytest
   - `models.py` - Environment, Workflow, WorkflowDependency, Schedule, Run
   - `dependencies.py` - lettura dipendenze dal .knwf e confronto con l'environment
   - `executor.py` - esecuzione di KNIME in batch mode
+  - `scheduler.py` - trigger, coda dei run, concorrenza, annullamento, pulizia storico
 - `tests/` - test (con un finto eseguibile KNIME)
 - `docs/` - architettura e note di progetto
 - `workflows/` - workflow KNIME di esempio (.knwf)
