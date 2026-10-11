@@ -1,11 +1,36 @@
-# Knightly
+<p align="center">
+  <img src="docs/assets/logo.svg" width="112" alt="Knightly">
+</p>
 
-**Scheduler open source per workflow [KNIME](https://www.knime.com/)**: pianifica, esegue e monitora i
-workflow in batch su installazioni KNIME locali, con dashboard web, log in tempo reale e gestione delle
-dipendenze (estensioni KNIME). Ispirato a [NodePit Runner](https://nodepit.com/product/runner).
+<h1 align="center">Knightly</h1>
+
+<p align="center">
+  <b>Scheduler open source per workflow KNIME</b><br>
+  Pianifica, esegue e monitora i workflow in batch su installazioni KNIME locali,<br>
+  con dashboard web, log in tempo reale e controllo delle dipendenze.
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="Licenza MIT"></a>
+  <img src="https://img.shields.io/badge/python-3.11%2B-3776AB" alt="Python 3.11+">
+  <img src="https://img.shields.io/badge/Vue-3-42b883" alt="Vue 3">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="Dashboard di Knightly" width="900">
+</p>
 
 > Knightly è un progetto indipendente: non è affiliato, sponsorizzato né approvato da KNIME AG.
-> KNIME® è un marchio registrato di KNIME AG.
+
+## Screenshot
+
+| Schedule con dipendenze e anteprima della pianificazione | Log del run in tempo reale |
+|---|---|
+| <img src="docs/screenshots/schedule-edit.png" alt="Configurazione di uno schedule"> | <img src="docs/screenshots/run-log.png" alt="Dettaglio di un run con log"> |
+| **Elenco degli schedule** | **Environment ed estensioni installate** |
+| <img src="docs/screenshots/schedules.png" alt="Elenco degli schedule"> | <img src="docs/screenshots/environment.png" alt="Configurazione di un environment"> |
+| **Tema scuro** | **Accesso** |
+| <img src="docs/screenshots/dashboard-dark.png" alt="Dashboard con tema scuro"> | <img src="docs/screenshots/login.png" alt="Pagina di accesso"> |
 
 ## Obiettivi
 - Gestire gli **Environment**: installazioni KNIME locali con estensioni, preferenze (.epf) e argomenti JVM

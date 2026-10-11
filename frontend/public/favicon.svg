@@ -1,5 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#2F5BEA"/>
-  <path d="M16 6 L25 11 L25 21 L16 26 L7 21 L7 11 Z" fill="none" stroke="#FFD43B" stroke-width="2.4" stroke-linejoin="round"/>
-  <path d="M16 11 V16.5 L19.5 19" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101A47"/>
+      <stop offset="1" stop-color="#2F5BEA"/>
+    </linearGradient>
+    <linearGradient id="moon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFE07A"/>
+      <stop offset="1" stop-color="#FFC21A"/>
+    </linearGradient>
+    <mask id="crescent">
+      <rect width="128" height="128" fill="#fff"/>
+      <circle cx="74" cy="52" r="31" fill="#000"/>
+    </mask>
+  </defs>
+
+  <rect width="128" height="128" rx="28" fill="url(#sky)"/>
+
+  <!-- stelle -->
+  <circle cx="100" cy="26" r="2.6" fill="#fff" opacity="0.9"/>
+  <circle cx="110" cy="44" r="1.6" fill="#fff" opacity="0.7"/>
+  <circle cx="86" cy="18" r="1.4" fill="#fff" opacity="0.6"/>
+
+  <!-- luna crescente -->
+  <circle cx="58" cy="66" r="38" fill="url(#moon)" mask="url(#crescent)"/>
+
+  <!-- lancette dell'orologio nell'incavo della luna -->
+  <g stroke="#fff" stroke-width="6" stroke-linecap="round" fill="none">
+    <path d="M78 56 V40"/>
+    <path d="M78 56 L90 64"/>
+  </g>
+  <circle cx="78" cy="56" r="4.5" fill="#fff"/>
 </svg>
